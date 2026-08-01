@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>App Intervalles - Jogging</title>
-  <!-- Icône de coureur -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
   <style>
     :root {
@@ -171,7 +170,7 @@
     const audioCloche = new Audio('cloche.wav');
     const audioDecompte = new Audio('decompte_5s.wav');
 
-    // Récupération des réglages sauvegardés dans le cache
+    // Récupération des réglages
     let durationWarmup = parseInt(localStorage.getItem('durationWarmup')) || 300;
     let durationRun = parseInt(localStorage.getItem('durationRun')) || 60;
     let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 60;
@@ -200,7 +199,7 @@
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
 
-    // Synthèse vocale pour les annonces de phases
+    // Synthèse vocale
     function speak(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -208,6 +207,24 @@
         utterance.lang = 'fr-FR';
         window.speechSynthesis.speak(utterance);
       }
+    }
+    
+    // Convertir les secondes en texte parlé naturel (ex: "1 minute et 30 secondes")
+    function formatTimeToSpeech(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      let text = "";
+      
+      if (m > 0) {
+        text += m + (m === 1 ? " minute" : " minutes");
+      }
+      if (m > 0 && s > 0) {
+        text += " et ";
+      }
+      if (s > 0) {
+        text += s + (s === 1 ? " seconde" : " secondes");
+      }
+      return text;
     }
 
     function playCloche() {
@@ -220,7 +237,6 @@
       audioDecompte.play().catch(err => console.warn("Erreur décompte:", err));
     }
 
-    // Wake Lock API pour garder l'écran allumé
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -262,25 +278,36 @@
     function tick() {
       totalTimeElapsed++;
 
-      // Déclenche le fichier audio de 5 secondes pour préserver Spotify
+      // Déclenche le fichier audio de 5 secondes
       if (timeLeft === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
       }
 
+      // Rappels vocaux du temps restant (ignoré si on est à 5 secondes ou moins pour ne pas chevaucher le fichier audio)
+      if (timeLeft > 5) {
+        if (currentPhase === 'WARMUP' && timeLeft % 60 === 0) {
+          speak("Il reste " + formatTimeToSpeech(timeLeft));
+        } else if (currentPhase === 'WALK' && timeLeft % 30 === 0) {
+          speak("Il reste " + formatTimeToSpeech(timeLeft));
+        } else if (currentPhase === 'RUN' && timeLeft % 15 === 0) {
+          speak("Il reste " + formatTimeToSpeech(timeLeft));
+        }
+      }
+
+      // Changement de phase
       if (timeLeft <= 0) {
         playCloche();
         countdownTriggered = false;
 
-        // Logique des phases (Échauffement -> Course <-> Marche)
         if (currentPhase === 'WARMUP' || currentPhase === 'WALK') {
           currentPhase = 'RUN';
           timeLeft = durationRun;
-          speak("Course");
+          speak("Course, " + formatTimeToSpeech(durationRun));
         } else if (currentPhase === 'RUN') {
           currentPhase = 'WALK';
           timeLeft = durationWalk;
-          speak("Marche");
+          speak("Marche, " + formatTimeToSpeech(durationWalk));
         }
 
         updateUI();
@@ -309,7 +336,6 @@
       btnStart.style.display = 'none';
       btnReset.style.display = 'inline-block';
 
-      // On commence par l'échauffement
       currentPhase = 'WARMUP';
       timeLeft = durationWarmup;
       totalTimeElapsed = 0;
@@ -317,7 +343,7 @@
 
       updateUI();
       playCloche();
-      speak("Échauffement");
+      speak("Échauffement, " + formatTimeToSpeech(durationWarmup));
 
       timerInterval = setInterval(tick, 1000);
     }
@@ -346,7 +372,6 @@
       updateUI();
     }
 
-    // Maj directe du chrono au repos si on modifie l'échauffement
     inputWarmup.addEventListener('change', () => {
       durationWarmup = Math.max(5, parseInt(inputWarmup.value) || 300);
       if (!timerInterval && currentPhase === 'WARMUP') {
