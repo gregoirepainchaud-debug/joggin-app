@@ -290,11 +290,34 @@
                 timeLeft--;
                 updateDisplay();
 
-                // Rappel aux 15 secondes (seulement s'il reste du temps)
-                if (timeLeft > 0 && timeLeft % 15 === 0) {
-                    const durationText = formatDurationSpoken(timeLeft);
-                    const wordRestante = timeLeft === 1 ? 'restante' : 'restantes';
-                    speak(`${durationText} ${wordRestante}`);
+                // Décompte final 5, 4, 3, 2, 1 pour toutes les phases
+                if (timeLeft >= 1 && timeLeft <= 5) {
+                    speak(`${timeLeft}`);
+                } 
+                else if (timeLeft > 5) {
+                    let shouldAnnounce = false;
+
+                    if (currentState === 'Échauffement') {
+                        // À chaque minute (multiple de 60s) ou au dernier 15s
+                        if (timeLeft % 60 === 0 || timeLeft === 15) {
+                            shouldAnnounce = true;
+                        }
+                    } else if (currentState === 'Marche') {
+                        // Toutes les 30 secondes
+                        if (timeLeft % 30 === 0) {
+                            shouldAnnounce = true;
+                        }
+                    } else if (currentState === 'Course') {
+                        // Toutes les 15 secondes
+                        if (timeLeft % 15 === 0) {
+                            shouldAnnounce = true;
+                        }
+                    }
+
+                    if (shouldAnnounce) {
+                        const durationText = formatDurationSpoken(timeLeft);
+                        speak(`${durationText} restantes`);
+                    }
                 }
 
                 // Fin du décompte : on passe à la prochaine étape
