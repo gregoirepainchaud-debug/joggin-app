@@ -148,7 +148,6 @@
   <div class="card">
     <h1>Entraînement d'Intervalles</h1>
 
-    <!-- Réglages des durées -->
     <div class="settings-grid" id="settingsContainer">
       <div class="input-group">
         <label for="inputRun">Course (sec)</label>
@@ -170,11 +169,11 @@
   </div>
 
   <script>
-    // Fichiers audio
+    // Fichiers sons
     const audioCloche = new Audio('cloche.wav');
     const audioDecompte = new Audio('decompte_5s.wav');
 
-    // Variables d'état
+    // Récupération des réglages sauvegardés
     let durationRun = parseInt(localStorage.getItem('durationRun')) || 30;
     let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 30;
 
@@ -184,7 +183,7 @@
     let wakeLock = null;
     let countdownTriggered = false;
 
-    // Éléments DOM
+    // Éléments du DOM
     const inputRun = document.getElementById('inputRun');
     const inputWalk = document.getElementById('inputWalk');
     const settingsContainer = document.getElementById('settingsContainer');
@@ -193,11 +192,19 @@
     const btnStart = document.getElementById('btnStart');
     const btnReset = document.getElementById('btnReset');
 
-    // Charger les réglages en mémoire
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
 
-    // Fonctions de lecture audio
+    // Synthèse vocale native pour les annonces de début et de transition
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'fr-FR';
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
     function playCloche() {
       audioCloche.currentTime = 0;
       audioCloche.play().catch(err => console.warn("Erreur lecture cloche:", err));
@@ -208,7 +215,7 @@
       audioDecompte.play().catch(err => console.warn("Erreur lecture décompte:", err));
     }
 
-    // Empêcher la mise en veille de l'écran
+    // Gestion de l'écran allumé
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -243,23 +250,23 @@
     }
 
     function tick() {
-      // Lancement du bloc audio de 5s exactement à t = 5
+      // Remplace le décompte vocal par le déclenchement unique de decompte_5s.wav
       if (timeLeft === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
       }
 
       if (timeLeft <= 0) {
-        // Cloche de changement de phase à t = 0
         playCloche();
 
-        // Bascule entre Course et Marche
         if (currentPhase === 'RUN') {
           currentPhase = 'WALK';
           timeLeft = durationWalk;
+          speak("Marche");
         } else {
           currentPhase = 'RUN';
           timeLeft = durationRun;
+          speak("Course");
         }
 
         countdownTriggered = false;
@@ -272,21 +279,17 @@
     }
 
     async function startTimer() {
-      // Autoriser le canal audio sur interaction utilisateur
       audioCloche.load();
       audioDecompte.load();
 
-      // Récupération des valeurs
       durationRun = Math.max(5, parseInt(inputRun.value) || 30);
       durationWalk = Math.max(5, parseInt(inputWalk.value) || 30);
 
-      // Enregistrement
       localStorage.setItem('durationRun', durationRun);
       localStorage.setItem('durationWalk', durationWalk);
 
       await requestWakeLock();
 
-      // Ajustement de l'affichage
       settingsContainer.style.display = 'none';
       btnStart.style.display = 'none';
       btnReset.style.display = 'inline-block';
@@ -296,9 +299,8 @@
       countdownTriggered = false;
 
       updateUI();
-
-      // Cloche de départ immédiate
       playCloche();
+      speak("C'est parti, course");
 
       timerInterval = setInterval(tick, 1000);
     }
@@ -308,13 +310,16 @@
       timerInterval = null;
       releaseWakeLock();
 
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      audioCloche.pause();
+      audioDecompte.pause();
+
       currentPhase = 'RUN';
       timeLeft = durationRun;
       countdownTriggered = false;
-
-      // Arrêt des pistes sonores
-      audioCloche.pause();
-      audioDecompte.pause();
 
       settingsContainer.style.display = 'grid';
       btnStart.style.display = 'inline-block';
@@ -323,7 +328,6 @@
       updateUI();
     }
 
-    // Mise à jour de l'affichage en direct lors des modifications de réglage
     inputRun.addEventListener('change', () => {
       durationRun = Math.max(5, parseInt(inputRun.value) || 30);
       if (!timerInterval && currentPhase === 'RUN') {
