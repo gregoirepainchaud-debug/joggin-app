@@ -1,340 +1,307 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intervalles de Jogging</title>
-    
-    <!-- Icône pour l'écran d'accueil iOS et navigateurs -->
-    <link rel="apple-touch-icon" href="IconeCoureur.png">
-    <link rel="icon" type="image/png" href="IconeCoureur.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application d'Intervalles - Jogging</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --accent-run: #ff5252;
+      --accent-walk: #4caf50;
+      --text-color: #ffffff;
+      --subtext-color: #b0b0b0;
+    }
 
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
-            background-color: #f4f4f9;
-            color: #333;
-            padding-top: 20px;
-            padding-bottom: 40px;
-        }
-        h1 { margin-bottom: 20px; }
-        .config-panel {
-            background: white;
-            max-width: 350px;
-            margin: 0 auto;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .input-group {
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        input {
-            width: 80px;
-            padding: 8px;
-            font-size: 16px;
-            text-align: center;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        #btnStart {
-            background-color: #28a745;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            padding: 15px 40px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 20px;
-            width: 200px;
-            transition: background-color 0.3s;
-        }
-        #btnStart.stop {
-            background-color: #dc3545;
-        }
-        #status {
-            font-size: 28px;
-            font-weight: bold;
-            margin-top: 30px;
-            color: #555;
-            text-transform: uppercase;
-        }
-        #display {
-            font-size: 80px;
-            font-weight: bold;
-            margin-top: 5px;
-            color: #007bff;
-        }
-        .total-container {
-            margin-top: 30px;
-            background: #e9ecef;
-            display: inline-block;
-            padding: 10px 25px;
-            border-radius: 8px;
-        }
-        .total-label {
-            font-size: 14px;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: bold;
-        }
-        #totalDisplay {
-            font-size: 28px;
-            font-weight: bold;
-            color: #333;
-            margin-top: 5px;
-        }
-    </style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--subtext-color);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .timer-display {
+      font-size: 4.5rem;
+      font-weight: bold;
+      margin: 1rem 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .phase-indicator {
+      font-size: 1.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .phase-run {
+      color: var(--accent-run);
+      background-color: rgba(255, 82, 82, 0.15);
+    }
+
+    .phase-walk {
+      color: var(--accent-walk);
+      background-color: rgba(76, 175, 80, 0.15);
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 2rem;
+      justify-content: center;
+    }
+
+    button {
+      background-color: #333;
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    button.btn-primary {
+      background-color: #388e3c;
+    }
+
+    button.btn-stop {
+      background-color: #d32f2f;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Intervalles de Jogging</h1>
-    
-    <div class="config-panel">
-        <div class="input-group">
-            <label for="x">Échauffement (sec):</label>
-            <input type="number" id="x" value="300" onchange="saveSettings()">
-        </div>
-        <div class="input-group">
-            <label for="y">Course (sec):</label>
-            <input type="number" id="y" value="60" onchange="saveSettings()">
-        </div>
-        <div class="input-group">
-            <label for="z">Marche (sec):</label>
-            <input type="number" id="z" value="60" onchange="saveSettings()">
-        </div>
+  <div class="card">
+    <h1>Entraînement d'Intervalles</h1>
+
+    <div id="phaseDisplay" class="phase-indicator phase-run">Course</div>
+    <div id="timerDisplay" class="timer-display">00:30</div>
+
+    <div class="controls">
+      <button id="btnStart" class="btn-primary">Démarrer</button>
+      <button id="btnReset" class="btn-stop" style="display: none;">Arrêter</button>
     </div>
+  </div>
 
-    <button id="btnStart" onclick="toggleTimer()">START</button>
+  <script>
+    // Config de l'entraînement (en secondes)
+    const DURATION_RUN = 30;
+    const DURATION_WALK = 30;
 
-    <div id="status">Prêt</div>
-    <div id="display">0</div>
+    let currentPhase = 'RUN'; // 'RUN' ou 'WALK'
+    let timeLeft = DURATION_RUN;
+    let timerInterval = null;
+    let wakeLock = null;
+    let countdownTriggered = false;
 
-    <div class="total-container">
-        <div class="total-label">Temps Total</div>
-        <div id="totalDisplay">00:00</div>
-    </div>
+    // Éléments DOM
+    const timerDisplay = document.getElementById('timerDisplay');
+    const phaseDisplay = document.getElementById('phaseDisplay');
+    const btnStart = document.getElementById('btnStart');
+    const btnReset = document.getElementById('btnReset');
 
-    <!-- Élément audio WAV -->
-    <audio id="bellAudio" src="cloche.wav" type="audio/wav" preload="auto"></audio>
+    // Context Web Audio pour la gestion du gain (+3 dB sur cloche.wav)
+    let audioCtx = null;
+    let clocheBuffer = null;
+    let decompteBuffer = null;
+    let clocheGainNode = null;
 
-    <script>
-        let timer = null;
-        let timeLeft = 0;
-        let totalTime = 0; // En secondes
-        let currentState = ''; // 'Échauffement', 'Course', 'Marche'
-        let isRunning = false;
-        let wakeLock = null;
-        
-        // Variables x, y, z
-        let x = 0;
-        let y = 0;
-        let z = 0;
+    // Facteur +3 dB : 10^(3/20) ≈ 1.4125
+    const GAIN_3DB = Math.pow(10, 3 / 20);
 
-        // Charger les paramètres enregistrés au démarrage
-        window.onload = function() {
-            if (localStorage.getItem('jogging_x')) {
-                document.getElementById('x').value = localStorage.getItem('jogging_x');
-            }
-            if (localStorage.getItem('jogging_y')) {
-                document.getElementById('y').value = localStorage.getItem('jogging_y');
-            }
-            if (localStorage.getItem('jogging_z')) {
-                document.getElementById('z').value = localStorage.getItem('jogging_z');
-            }
-            if (localStorage.getItem('jogging_totalTime')) {
-                totalTime = parseInt(localStorage.getItem('jogging_totalTime')) || 0;
-                updateTotalDisplay();
-            }
-        };
+    // Initialisation et chargement de l'audio via Web Audio API
+    async function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
 
-        // Sauvegarder les valeurs dans le cache local de l'appareil
-        function saveSettings() {
-            localStorage.setItem('jogging_x', document.getElementById('x').value);
-            localStorage.setItem('jogging_y', document.getElementById('y').value);
-            localStorage.setItem('jogging_z', document.getElementById('z').value);
+        // Création du noeud de Gain pour booster la cloche de +3 dB
+        clocheGainNode = audioCtx.createGain();
+        clocheGainNode.gain.value = GAIN_3DB;
+        clocheGainNode.connect(audioCtx.destination);
+      }
+
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      // Préchargement des fichiers
+      if (!clocheBuffer) {
+        clocheBuffer = await loadAudioBuffer('cloche.wav');
+      }
+      if (!decompteBuffer) {
+        decompteBuffer = await loadAudioBuffer('decompte_5s.wav');
+      }
+    }
+
+    async function loadAudioBuffer(url) {
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        return await audioCtx.decodeAudioData(arrayBuffer);
+      } catch (err) {
+        console.error(`Erreur de chargement du fichier audio (${url}) :`, err);
+        return null;
+      }
+    }
+
+    // Jouer le décompte (1 seul bloc audio de 5 secondes)
+    function playDecompte() {
+      if (!audioCtx || !decompteBuffer) return;
+      
+      const source = audioCtx.createBufferSource();
+      source.buffer = decompteBuffer;
+      // Connexion directe à la sortie standard (volume 1.0)
+      source.connect(audioCtx.destination);
+      source.start(0);
+    }
+
+    // Jouer la cloche avec le boost de +3 dB
+    function playCloche() {
+      if (!audioCtx || !clocheBuffer) return;
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = clocheBuffer;
+      // Routage dans le GainNode (+3 dB)
+      source.connect(clocheGainNode);
+      source.start(0);
+    }
+
+    // Empêcher le verrouillage de l'écran (Screen Wake Lock API)
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn('Wake Lock non disponible :', err);
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().then(() => { wakeLock = null; });
+      }
+    }
+
+    // Formater le temps M:SS
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateUI() {
+      timerDisplay.textContent = formatTime(timeLeft);
+      if (currentPhase === 'RUN') {
+        phaseDisplay.textContent = 'Course';
+        phaseDisplay.className = 'phase-indicator phase-run';
+      } else {
+        phaseDisplay.textContent = 'Marche';
+        phaseDisplay.className = 'phase-indicator phase-walk';
+      }
+    }
+
+    // Boucle d'intervalle
+    function tick() {
+      // Déclencher le décompte de 5 secondes exactement quand il reste 5 secondes
+      if (timeLeft === 5 && !countdownTriggered) {
+        playDecompte();
+        countdownTriggered = true;
+      }
+
+      if (timeLeft <= 0) {
+        // Changement de phase : La cloche sonne à t = 0
+        playCloche();
+
+        // Bascule entre Course et Marche
+        if (currentPhase === 'RUN') {
+          currentPhase = 'WALK';
+          timeLeft = DURATION_WALK;
+        } else {
+          currentPhase = 'RUN';
+          timeLeft = DURATION_RUN;
         }
 
-        // Empêcher l'écran de se mettre en veille
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {
-                console.log("Wake Lock error:", err);
-            }
-        }
+        countdownTriggered = false;
+        updateUI();
+        return;
+      }
 
-        // Libérer le verrou d'écran
-        function releaseWakeLock() {
-            if (wakeLock !== null) {
-                wakeLock.release();
-                wakeLock = null;
-            }
-        }
+      timeLeft--;
+      updateUI();
+    }
 
-        // Convertir les secondes en format MM:SS
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            const formattedMins = mins < 10 ? '0' + mins : mins;
-            const formattedSecs = secs < 10 ? '0' + secs : secs;
-            return `${formattedMins}:${formattedSecs}`;
-        }
+    // Démarrage de l'entraînement
+    async function startTimer() {
+      await initAudio();
+      await requestWakeLock();
 
-        // Convertir les secondes en phrase parlée (ex: "1 minute et 15 secondes")
-        function formatDurationSpoken(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            let parts = [];
+      btnStart.style.display = 'none';
+      btnReset.style.display = 'inline-block';
 
-            if (mins > 0) {
-                parts.push(`${mins} minute${mins > 1 ? 's' : ''}`);
-            }
-            if (secs > 0) {
-                parts.push(`${secs} seconde${secs > 1 ? 's' : ''}`);
-            }
+      countdownTriggered = false;
+      timerInterval = setInterval(tick, 1000);
+    }
 
-            if (parts.length === 0) return "0 seconde";
-            return parts.join(" et ");
-        }
+    // Arrêt / Réinitialisation
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      releaseWakeLock();
 
-        function updateTotalDisplay() {
-            document.getElementById('totalDisplay').innerText = formatTime(totalTime);
-        }
+      currentPhase = 'RUN';
+      timeLeft = DURATION_RUN;
+      countdownTriggered = false;
 
-        // Jouer le fichier WAV
-        function playBell() {
-            const audio = document.getElementById('bellAudio');
-            if (audio) {
-                audio.currentTime = 0; // Remet au début si joué plusieurs fois rapidement
-                audio.play().catch(e => console.log("Erreur de lecture audio :", e));
-            }
-        }
+      btnStart.style.display = 'inline-block';
+      btnReset.style.display = 'none';
 
-        // Fonction pour parler
-        function speak(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'fr-CA'; // Accent québécois
-                window.speechSynthesis.speak(utterance);
-            }
-        }
+      updateUI();
+    }
 
-        function toggleTimer() {
-            const btn = document.getElementById('btnStart');
-            
-            if (isRunning) {
-                // Arrêter l'application
-                clearInterval(timer);
-                isRunning = false;
-                btn.innerText = 'START';
-                btn.classList.remove('stop');
-                document.getElementById('status').innerText = 'Arrêté';
-                window.speechSynthesis.cancel();
+    // Événements boutons
+    btnStart.addEventListener('click', startTimer);
+    btnReset.addEventListener('click', resetTimer);
 
-                // Sauvegarder le temps total et autoriser la mise en veille
-                localStorage.setItem('jogging_totalTime', totalTime);
-                releaseWakeLock();
-                return;
-            }
-
-            // Démarrer l'application & enregistrer les réglages actuels
-            saveSettings();
-
-            x = parseInt(document.getElementById('x').value) || 0;
-            y = parseInt(document.getElementById('y').value) || 0;
-            z = parseInt(document.getElementById('z').value) || 0;
-
-            // Réinitialiser le temps total pour la nouvelle séance
-            totalTime = 0;
-            updateTotalDisplay();
-
-            isRunning = true;
-            btn.innerText = 'STOP';
-            btn.classList.add('stop');
-
-            // Empêcher l'écran de s'éteindre pendant la course
-            requestWakeLock();
-
-            startPhase('Échauffement', x);
-            timer = setInterval(tick, 1000);
-        }
-
-        function startPhase(phase, duration) {
-            currentState = phase;
-            timeLeft = duration;
-            updateDisplay();
-            playBell();
-
-            // Annonce vocale de début de phase
-            setTimeout(() => {
-                const durationText = formatDurationSpoken(duration);
-                speak(`${phase} ${durationText}`);
-            }, 800);
-        }
-
-        function tick() {
-            // Incrémenter le temps total écoulé
-            totalTime++;
-            updateTotalDisplay();
-
-            if (timeLeft > 0) {
-                timeLeft--;
-                updateDisplay();
-
-                // Décompte final 5, 4, 3, 2, 1 pour toutes les phases
-                if (timeLeft >= 1 && timeLeft <= 5) {
-                    speak(`${timeLeft}`);
-                } 
-                else if (timeLeft > 5) {
-                    let shouldAnnounce = false;
-
-                    if (currentState === 'Échauffement') {
-                        // À chaque minute (multiple de 60s) ou au dernier 15s
-                        if (timeLeft % 60 === 0 || timeLeft === 15) {
-                            shouldAnnounce = true;
-                        }
-                    } else if (currentState === 'Marche') {
-                        // Toutes les 30 secondes
-                        if (timeLeft % 30 === 0) {
-                            shouldAnnounce = true;
-                        }
-                    } else if (currentState === 'Course') {
-                        // Toutes les 15 secondes
-                        if (timeLeft % 15 === 0) {
-                            shouldAnnounce = true;
-                        }
-                    }
-
-                    if (shouldAnnounce) {
-                        const durationText = formatDurationSpoken(timeLeft);
-                        speak(`${durationText} restantes`);
-                    }
-                }
-
-                // Fin du décompte : on passe à la prochaine étape
-                if (timeLeft === 0) {
-                    if (currentState === 'Échauffement' || currentState === 'Marche') {
-                        startPhase('Course', y);
-                    } else if (currentState === 'Course') {
-                        startPhase('Marche', z);
-                    }
-                }
-            }
-        }
-
-        function updateDisplay() {
-            document.getElementById('display').innerText = timeLeft;
-            document.getElementById('status').innerText = currentState;
-        }
-    </script>
+    // Initialisation affichage
+    updateUI();
+  </script>
 </body>
 </html>
