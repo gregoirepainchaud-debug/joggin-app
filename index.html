@@ -166,7 +166,7 @@
   </div>
 
   <script>
-    // Audio
+    // Fichiers audios
     const audioCloche = new Audio('cloche.wav');
     const audioDecompte = new Audio('decompte_5s.wav');
 
@@ -182,7 +182,9 @@
     let timerInterval = null;
     let wakeLock = null;
     let countdownTriggered = false;
+    let qcVoice = null; // Variable pour la voix québécoise
 
+    // Éléments du DOM
     const inputWarmup = document.getElementById('inputWarmup');
     const inputRun = document.getElementById('inputRun');
     const inputWalk = document.getElementById('inputWalk');
@@ -198,31 +200,60 @@
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
 
+    // --- SYNTHÈSE VOCALE ET FORMATAGE ---
+
+    // Récupérer la voix féminine du Québec (si dispo)
+    function setVoice() {
+      const voices = window.speechSynthesis.getVoices();
+      qcVoice = voices.find(v => v.lang === 'fr-CA' && v.name.includes('Amélie')) 
+             || voices.find(v => v.lang === 'fr-CA' && (v.name.includes('female') || v.name.includes('Female')))
+             || voices.find(v => v.lang === 'fr-CA')
+             || voices.find(v => v.lang.startsWith('fr') && (v.name.includes('female') || v.name.includes('Female')))
+             || voices.find(v => v.lang.startsWith('fr'));
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = setVoice;
+    }
+
     function speak(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'fr-FR';
+        utterance.lang = 'fr-CA'; // Demande l'accent canadien
+        if (!qcVoice) setVoice();
+        if (qcVoice) utterance.voice = qcVoice;
+        
         window.speechSynthesis.speak(utterance);
       }
     }
     
-    function formatTimeToSpeech(seconds) {
+    // Traduit les secondes pour les phases ("Course 55 secondes")
+    function formatDurationSpeech(seconds) {
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
       let text = "";
       
-      if (m > 0) {
-        text += m + (m === 1 ? " minute" : " minutes");
-      }
-      if (m > 0 && s > 0) {
-        text += " et ";
-      }
-      if (s > 0) {
-        text += s + (s === 1 ? " seconde" : " secondes");
-      }
+      if (m > 0) text += m + (m === 1 ? " minute" : " minutes");
+      if (m > 0 && s > 0) text += " et ";
+      if (s > 0) text += s + (s === 1 ? " seconde" : " secondes");
+      
       return text;
     }
+
+    // Traduit les secondes pour les rappels ("15 secondes restantes")
+    function formatTimeRemainingSpeech(seconds) {
+      const text = formatDurationSpeech(seconds);
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      
+      if ((m === 1 && s === 0) || (m === 0 && s === 1)) {
+         return text + " restante";
+      }
+      return text + " restantes";
+    }
+
+    // --- FONCTIONS AUDIO DE BASE ---
 
     function playCloche() {
       audioCloche.currentTime = 0;
@@ -272,41 +303,48 @@
       }
     }
 
+    // --- LOGIQUE DU CHRONOMÈTRE ---
+
     function tick() {
       totalTimeElapsed++;
+      
+      // On anticipe le temps qui s'affichera dans une fraction de seconde
+      let nextTime = timeLeft - 1;
 
-      // Décompte Spotify-friendly
-      if (timeLeft === 5 && !countdownTriggered) {
+      // Déclenche le décompte Spotify exactement au changement vers la 5e seconde
+      if (nextTime === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
       }
 
       // Rappels vocaux du temps restant
-      if (timeLeft > 5) {
-        if (currentPhase === 'WARMUP' && timeLeft % 60 === 0) {
-          speak("Il reste " + formatTimeToSpeech(timeLeft));
-        } else if (currentPhase === 'WALK' && timeLeft % 30 === 0) {
-          speak("Il reste " + formatTimeToSpeech(timeLeft));
-        } else if (currentPhase === 'RUN' && timeLeft % 15 === 0) {
-          speak("Il reste " + formatTimeToSpeech(timeLeft));
+      if (nextTime > 5) {
+        if (currentPhase === 'WARMUP' && nextTime % 60 === 0) {
+          speak(formatTimeRemainingSpeech(nextTime));
+        } else if (currentPhase === 'WALK' && nextTime % 30 === 0) {
+          speak(formatTimeRemainingSpeech(nextTime));
+        } else if (currentPhase === 'RUN' && nextTime % 15 === 0) {
+          speak(formatTimeRemainingSpeech(nextTime));
         }
       }
 
       // Changement de phase
-      if (timeLeft <= 0) {
+      if (nextTime <= 0) {
         playCloche();
         countdownTriggered = false;
 
         if (currentPhase === 'WARMUP' || currentPhase === 'WALK') {
           currentPhase = 'RUN';
           timeLeft = durationRun;
-          speak("Course, " + formatTimeToSpeech(durationRun));
+          // Délai de 1 seconde pour laisser la cloche sonner
+          setTimeout(() => speak("Course " + formatDurationSpeech(durationRun)), 1000);
         } else if (currentPhase === 'RUN') {
           currentPhase = 'WALK';
           timeLeft = durationWalk;
-          speak("Marche, " + formatTimeToSpeech(durationWalk));
+          // Délai de 1 seconde pour laisser la cloche sonner
+          setTimeout(() => speak("Marche " + formatDurationSpeech(durationWalk)), 1000);
         }
-
+        
         updateUI();
         return;
       }
@@ -316,25 +354,24 @@
     }
 
     async function startTimer() {
-      // 1. Charger les audios sur le clic
+      // 1. Précharger les fichiers audio
       audioCloche.load();
       audioDecompte.load();
+
+      // 2. Débloquer la synthèse vocale sur le navigateur mobile
+      // (En envoyant une chaîne vide immédiatement sur le clic)
+      if ('speechSynthesis' in window) {
+         window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+      }
 
       durationWarmup = Math.max(5, parseInt(inputWarmup.value) || 300);
       durationRun = Math.max(5, parseInt(inputRun.value) || 60);
       durationWalk = Math.max(5, parseInt(inputWalk.value) || 60);
 
-      // 2. PARLER TOUT DE SUITE ! (Avant l'await)
-      // Cela "débloque" la voix pour le système mobile de façon permanente
-      speak("Échauffement, " + formatTimeToSpeech(durationWarmup));
-      playCloche();
-
-      // 3. Sauvegarder les paramètres
       localStorage.setItem('durationWarmup', durationWarmup);
       localStorage.setItem('durationRun', durationRun);
       localStorage.setItem('durationWalk', durationWalk);
 
-      // 4. Mettre à jour l'interface
       settingsContainer.style.display = 'none';
       btnStart.style.display = 'none';
       btnReset.style.display = 'inline-block';
@@ -346,9 +383,11 @@
 
       updateUI();
       
-      // 5. SEULEMENT ENSUITE, demander le Wake Lock qui est asynchrone (await)
-      await requestWakeLock();
+      // 3. Jouer la cloche et délayer l'annonce d'une seconde
+      playCloche();
+      setTimeout(() => speak("Échauffement " + formatDurationSpeech(durationWarmup)), 1000);
 
+      await requestWakeLock();
       timerInterval = setInterval(tick, 1000);
     }
 
