@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Application d'Intervalles - Jogging</title>
+  <title>App Intervalles - Jogging</title>
+  <!-- Icône de coureur -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
   <style>
     :root {
       --bg-color: #121212;
       --card-bg: #1e1e1e;
+      --accent-warmup: #ffb74d;
       --accent-run: #ff5252;
       --accent-walk: #4caf50;
       --text-color: #ffffff;
@@ -41,16 +44,22 @@
 
     h1 {
       font-size: 1.3rem;
-      margin-bottom: 1.2rem;
-      color: var(--subtext-color);
+      margin-bottom: 0.5rem;
+      color: var(--text-color);
       text-transform: uppercase;
       letter-spacing: 1px;
+    }
+    
+    .total-time {
+      font-size: 1rem;
+      color: var(--subtext-color);
+      margin-bottom: 1.5rem;
     }
 
     .settings-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
       margin-bottom: 1.5rem;
       text-align: left;
     }
@@ -62,9 +71,10 @@
     }
 
     .input-group label {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       color: var(--subtext-color);
       font-weight: 600;
+      text-align: center;
     }
 
     .input-group input {
@@ -72,8 +82,8 @@
       border: 1px solid #444;
       border-radius: 8px;
       color: var(--text-color);
-      padding: 10px;
-      font-size: 1.1rem;
+      padding: 8px;
+      font-size: 1rem;
       font-weight: bold;
       text-align: center;
     }
@@ -91,7 +101,7 @@
     }
 
     .phase-indicator {
-      font-size: 1.8rem;
+      font-size: 1.5rem;
       font-weight: 600;
       text-transform: uppercase;
       margin-bottom: 0.5rem;
@@ -100,15 +110,9 @@
       display: inline-block;
     }
 
-    .phase-run {
-      color: var(--accent-run);
-      background-color: rgba(255, 82, 82, 0.15);
-    }
-
-    .phase-walk {
-      color: var(--accent-walk);
-      background-color: rgba(76, 175, 80, 0.15);
-    }
+    .phase-warmup { color: var(--accent-warmup); background-color: rgba(255, 183, 77, 0.15); }
+    .phase-run { color: var(--accent-run); background-color: rgba(255, 82, 82, 0.15); }
+    .phase-walk { color: var(--accent-walk); background-color: rgba(76, 175, 80, 0.15); }
 
     .controls {
       display: flex;
@@ -126,41 +130,35 @@
       font-weight: bold;
       border-radius: 30px;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s;
       width: 100%;
     }
-
-    button:active {
-      transform: scale(0.96);
-    }
-
-    button.btn-primary {
-      background-color: #388e3c;
-    }
-
-    button.btn-stop {
-      background-color: #d32f2f;
-    }
+    button.btn-primary { background-color: #388e3c; }
+    button.btn-stop { background-color: #d32f2f; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>Entraînement d'Intervalles</h1>
+    <h1>🏃 Entraînement</h1>
+    <div class="total-time" id="totalTimeDisplay">Temps total : 00:00</div>
 
     <div class="settings-grid" id="settingsContainer">
       <div class="input-group">
-        <label for="inputRun">Course (sec)</label>
-        <input type="number" id="inputRun" min="5" value="30">
+        <label for="inputWarmup">Échauff. (s)</label>
+        <input type="number" id="inputWarmup" min="5" value="300">
       </div>
       <div class="input-group">
-        <label for="inputWalk">Marche (sec)</label>
-        <input type="number" id="inputWalk" min="5" value="30">
+        <label for="inputRun">Course (s)</label>
+        <input type="number" id="inputRun" min="5" value="60">
+      </div>
+      <div class="input-group">
+        <label for="inputWalk">Marche (s)</label>
+        <input type="number" id="inputWalk" min="5" value="60">
       </div>
     </div>
 
-    <div id="phaseDisplay" class="phase-indicator phase-run">Course</div>
-    <div id="timerDisplay" class="timer-display">00:30</div>
+    <div id="phaseDisplay" class="phase-indicator phase-warmup">Échauffement</div>
+    <div id="timerDisplay" class="timer-display">05:00</div>
 
     <div class="controls">
       <button id="btnStart" class="btn-primary">Démarrer</button>
@@ -169,33 +167,40 @@
   </div>
 
   <script>
-    // Fichiers sons
+    // Audio
     const audioCloche = new Audio('cloche.wav');
     const audioDecompte = new Audio('decompte_5s.wav');
 
-    // Récupération des réglages sauvegardés
-    let durationRun = parseInt(localStorage.getItem('durationRun')) || 30;
-    let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 30;
+    // Récupération des réglages sauvegardés dans le cache
+    let durationWarmup = parseInt(localStorage.getItem('durationWarmup')) || 300;
+    let durationRun = parseInt(localStorage.getItem('durationRun')) || 60;
+    let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 60;
 
-    let currentPhase = 'RUN'; 
-    let timeLeft = durationRun;
+    let currentPhase = 'WARMUP'; 
+    let timeLeft = durationWarmup;
+    let totalTimeElapsed = 0;
+    
     let timerInterval = null;
     let wakeLock = null;
     let countdownTriggered = false;
 
     // Éléments du DOM
+    const inputWarmup = document.getElementById('inputWarmup');
     const inputRun = document.getElementById('inputRun');
     const inputWalk = document.getElementById('inputWalk');
+    
     const settingsContainer = document.getElementById('settingsContainer');
     const timerDisplay = document.getElementById('timerDisplay');
+    const totalTimeDisplay = document.getElementById('totalTimeDisplay');
     const phaseDisplay = document.getElementById('phaseDisplay');
     const btnStart = document.getElementById('btnStart');
     const btnReset = document.getElementById('btnReset');
 
+    inputWarmup.value = durationWarmup;
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
 
-    // Synthèse vocale native pour les annonces de début et de transition
+    // Synthèse vocale pour les annonces de phases
     function speak(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -207,22 +212,22 @@
 
     function playCloche() {
       audioCloche.currentTime = 0;
-      audioCloche.play().catch(err => console.warn("Erreur lecture cloche:", err));
+      audioCloche.play().catch(err => console.warn("Erreur cloche:", err));
     }
 
     function playDecompte() {
       audioDecompte.currentTime = 0;
-      audioDecompte.play().catch(err => console.warn("Erreur lecture décompte:", err));
+      audioDecompte.play().catch(err => console.warn("Erreur décompte:", err));
     }
 
-    // Gestion de l'écran allumé
+    // Wake Lock API pour garder l'écran allumé
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
         }
       } catch (err) {
-        console.warn('Wake Lock non disponible :', err);
+        console.warn('Wake Lock non dispo:', err);
       }
     }
 
@@ -240,7 +245,12 @@
 
     function updateUI() {
       timerDisplay.textContent = formatTime(timeLeft);
-      if (currentPhase === 'RUN') {
+      totalTimeDisplay.textContent = `Temps total : ${formatTime(totalTimeElapsed)}`;
+      
+      if (currentPhase === 'WARMUP') {
+        phaseDisplay.textContent = 'Échauffement';
+        phaseDisplay.className = 'phase-indicator phase-warmup';
+      } else if (currentPhase === 'RUN') {
         phaseDisplay.textContent = 'Course';
         phaseDisplay.className = 'phase-indicator phase-run';
       } else {
@@ -250,7 +260,9 @@
     }
 
     function tick() {
-      // Remplace le décompte vocal par le déclenchement unique de decompte_5s.wav
+      totalTimeElapsed++;
+
+      // Déclenche le fichier audio de 5 secondes pour préserver Spotify
       if (timeLeft === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
@@ -258,18 +270,19 @@
 
       if (timeLeft <= 0) {
         playCloche();
+        countdownTriggered = false;
 
-        if (currentPhase === 'RUN') {
-          currentPhase = 'WALK';
-          timeLeft = durationWalk;
-          speak("Marche");
-        } else {
+        // Logique des phases (Échauffement -> Course <-> Marche)
+        if (currentPhase === 'WARMUP' || currentPhase === 'WALK') {
           currentPhase = 'RUN';
           timeLeft = durationRun;
           speak("Course");
+        } else if (currentPhase === 'RUN') {
+          currentPhase = 'WALK';
+          timeLeft = durationWalk;
+          speak("Marche");
         }
 
-        countdownTriggered = false;
         updateUI();
         return;
       }
@@ -282,9 +295,11 @@
       audioCloche.load();
       audioDecompte.load();
 
-      durationRun = Math.max(5, parseInt(inputRun.value) || 30);
-      durationWalk = Math.max(5, parseInt(inputWalk.value) || 30);
+      durationWarmup = Math.max(5, parseInt(inputWarmup.value) || 300);
+      durationRun = Math.max(5, parseInt(inputRun.value) || 60);
+      durationWalk = Math.max(5, parseInt(inputWalk.value) || 60);
 
+      localStorage.setItem('durationWarmup', durationWarmup);
       localStorage.setItem('durationRun', durationRun);
       localStorage.setItem('durationWalk', durationWalk);
 
@@ -294,13 +309,15 @@
       btnStart.style.display = 'none';
       btnReset.style.display = 'inline-block';
 
-      currentPhase = 'RUN';
-      timeLeft = durationRun;
+      // On commence par l'échauffement
+      currentPhase = 'WARMUP';
+      timeLeft = durationWarmup;
+      totalTimeElapsed = 0;
       countdownTriggered = false;
 
       updateUI();
       playCloche();
-      speak("C'est parti, course");
+      speak("Échauffement");
 
       timerInterval = setInterval(tick, 1000);
     }
@@ -317,8 +334,9 @@
       audioCloche.pause();
       audioDecompte.pause();
 
-      currentPhase = 'RUN';
-      timeLeft = durationRun;
+      currentPhase = 'WARMUP';
+      timeLeft = durationWarmup;
+      totalTimeElapsed = 0;
       countdownTriggered = false;
 
       settingsContainer.style.display = 'grid';
@@ -328,18 +346,11 @@
       updateUI();
     }
 
-    inputRun.addEventListener('change', () => {
-      durationRun = Math.max(5, parseInt(inputRun.value) || 30);
-      if (!timerInterval && currentPhase === 'RUN') {
-        timeLeft = durationRun;
-        updateUI();
-      }
-    });
-
-    inputWalk.addEventListener('change', () => {
-      durationWalk = Math.max(5, parseInt(inputWalk.value) || 30);
-      if (!timerInterval && currentPhase === 'WALK') {
-        timeLeft = durationWalk;
+    // Maj directe du chrono au repos si on modifie l'échauffement
+    inputWarmup.addEventListener('change', () => {
+      durationWarmup = Math.max(5, parseInt(inputWarmup.value) || 300);
+      if (!timerInterval && currentPhase === 'WARMUP') {
+        timeLeft = durationWarmup;
         updateUI();
       }
     });
