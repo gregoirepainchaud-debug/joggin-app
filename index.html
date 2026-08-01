@@ -189,6 +189,23 @@
             return `${formattedMins}:${formattedSecs}`;
         }
 
+        // Convertir les secondes en phrase parlée (ex: "1 minute et 15 secondes")
+        function formatDurationSpoken(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            let parts = [];
+
+            if (mins > 0) {
+                parts.push(`${mins} minute${mins > 1 ? 's' : ''}`);
+            }
+            if (secs > 0) {
+                parts.push(`${secs} seconde${secs > 1 ? 's' : ''}`);
+            }
+
+            if (parts.length === 0) return "0 seconde";
+            return parts.join(" et ");
+        }
+
         function updateTotalDisplay() {
             document.getElementById('totalDisplay').innerText = formatTime(totalTime);
         }
@@ -257,9 +274,10 @@
             updateDisplay();
             playBell();
 
-            // Léger délai pour que la voix ne parle pas en même temps que la cloche
+            // Annonce vocale de début de phase
             setTimeout(() => {
-                speak(`${phase} ${duration} secondes`);
+                const durationText = formatDurationSpoken(duration);
+                speak(`${phase} ${durationText}`);
             }, 800);
         }
 
@@ -274,7 +292,9 @@
 
                 // Rappel aux 15 secondes (seulement s'il reste du temps)
                 if (timeLeft > 0 && timeLeft % 15 === 0) {
-                    speak(`${timeLeft} secondes`);
+                    const durationText = formatDurationSpoken(timeLeft);
+                    const wordRestante = timeLeft === 1 ? 'restante' : 'restantes';
+                    speak(`${durationText} ${wordRestante}`);
                 }
 
                 // Fin du décompte : on passe à la prochaine étape
