@@ -12,6 +12,7 @@
       --accent-walk: #4caf50;
       --text-color: #ffffff;
       --subtext-color: #b0b0b0;
+      --input-bg: #2a2a2a;
     }
 
     body {
@@ -39,17 +40,53 @@
     }
 
     h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
+      font-size: 1.3rem;
+      margin-bottom: 1.2rem;
       color: var(--subtext-color);
       text-transform: uppercase;
       letter-spacing: 1px;
     }
 
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 0.85rem;
+      color: var(--subtext-color);
+      font-weight: 600;
+    }
+
+    .input-group input {
+      background-color: var(--input-bg);
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: var(--text-color);
+      padding: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #888;
+    }
+
     .timer-display {
       font-size: 4.5rem;
       font-weight: bold;
-      margin: 1rem 0;
+      margin: 0.5rem 0;
       font-variant-numeric: tabular-nums;
     }
 
@@ -76,7 +113,7 @@
     .controls {
       display: flex;
       gap: 12px;
-      margin-top: 2rem;
+      margin-top: 1.5rem;
       justify-content: center;
     }
 
@@ -90,6 +127,7 @@
       border-radius: 30px;
       cursor: pointer;
       transition: background-color 0.2s, transform 0.1s;
+      width: 100%;
     }
 
     button:active {
@@ -110,6 +148,18 @@
   <div class="card">
     <h1>Entraînement d'Intervalles</h1>
 
+    <!-- Réglages des durées -->
+    <div class="settings-grid" id="settingsContainer">
+      <div class="input-group">
+        <label for="inputRun">Course (sec)</label>
+        <input type="number" id="inputRun" min="5" value="30">
+      </div>
+      <div class="input-group">
+        <label for="inputWalk">Marche (sec)</label>
+        <input type="number" id="inputWalk" min="5" value="30">
+      </div>
+    </div>
+
     <div id="phaseDisplay" class="phase-indicator phase-run">Course</div>
     <div id="timerDisplay" class="timer-display">00:30</div>
 
@@ -120,90 +170,45 @@
   </div>
 
   <script>
-    // Config de l'entraînement (en secondes)
-    const DURATION_RUN = 30;
-    const DURATION_WALK = 30;
+    // Fichiers audio
+    const audioCloche = new Audio('cloche.wav');
+    const audioDecompte = new Audio('decompte_5s.wav');
 
-    let currentPhase = 'RUN'; // 'RUN' ou 'WALK'
-    let timeLeft = DURATION_RUN;
+    // Variables d'état
+    let durationRun = parseInt(localStorage.getItem('durationRun')) || 30;
+    let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 30;
+
+    let currentPhase = 'RUN'; 
+    let timeLeft = durationRun;
     let timerInterval = null;
     let wakeLock = null;
     let countdownTriggered = false;
 
     // Éléments DOM
+    const inputRun = document.getElementById('inputRun');
+    const inputWalk = document.getElementById('inputWalk');
+    const settingsContainer = document.getElementById('settingsContainer');
     const timerDisplay = document.getElementById('timerDisplay');
     const phaseDisplay = document.getElementById('phaseDisplay');
     const btnStart = document.getElementById('btnStart');
     const btnReset = document.getElementById('btnReset');
 
-    // Context Web Audio pour la gestion du gain (+3 dB sur cloche.wav)
-    let audioCtx = null;
-    let clocheBuffer = null;
-    let decompteBuffer = null;
-    let clocheGainNode = null;
+    // Charger les réglages en mémoire
+    inputRun.value = durationRun;
+    inputWalk.value = durationWalk;
 
-    // Facteur +3 dB : 10^(3/20) ≈ 1.4125
-    const GAIN_3DB = Math.pow(10, 3 / 20);
-
-    // Initialisation et chargement de l'audio via Web Audio API
-    async function initAudio() {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
-
-        // Création du noeud de Gain pour booster la cloche de +3 dB
-        clocheGainNode = audioCtx.createGain();
-        clocheGainNode.gain.value = GAIN_3DB;
-        clocheGainNode.connect(audioCtx.destination);
-      }
-
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-
-      // Préchargement des fichiers
-      if (!clocheBuffer) {
-        clocheBuffer = await loadAudioBuffer('cloche.wav');
-      }
-      if (!decompteBuffer) {
-        decompteBuffer = await loadAudioBuffer('decompte_5s.wav');
-      }
-    }
-
-    async function loadAudioBuffer(url) {
-      try {
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        return await audioCtx.decodeAudioData(arrayBuffer);
-      } catch (err) {
-        console.error(`Erreur de chargement du fichier audio (${url}) :`, err);
-        return null;
-      }
-    }
-
-    // Jouer le décompte (1 seul bloc audio de 5 secondes)
-    function playDecompte() {
-      if (!audioCtx || !decompteBuffer) return;
-      
-      const source = audioCtx.createBufferSource();
-      source.buffer = decompteBuffer;
-      // Connexion directe à la sortie standard (volume 1.0)
-      source.connect(audioCtx.destination);
-      source.start(0);
-    }
-
-    // Jouer la cloche avec le boost de +3 dB
+    // Fonctions de lecture audio
     function playCloche() {
-      if (!audioCtx || !clocheBuffer) return;
-
-      const source = audioCtx.createBufferSource();
-      source.buffer = clocheBuffer;
-      // Routage dans le GainNode (+3 dB)
-      source.connect(clocheGainNode);
-      source.start(0);
+      audioCloche.currentTime = 0;
+      audioCloche.play().catch(err => console.warn("Erreur lecture cloche:", err));
     }
 
-    // Empêcher le verrouillage de l'écran (Screen Wake Lock API)
+    function playDecompte() {
+      audioDecompte.currentTime = 0;
+      audioDecompte.play().catch(err => console.warn("Erreur lecture décompte:", err));
+    }
+
+    // Empêcher la mise en veille de l'écran
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -220,7 +225,6 @@
       }
     }
 
-    // Formater le temps M:SS
     function formatTime(seconds) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
@@ -238,25 +242,24 @@
       }
     }
 
-    // Boucle d'intervalle
     function tick() {
-      // Déclencher le décompte de 5 secondes exactement quand il reste 5 secondes
+      // Lancement du bloc audio de 5s exactement à t = 5
       if (timeLeft === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
       }
 
       if (timeLeft <= 0) {
-        // Changement de phase : La cloche sonne à t = 0
+        // Cloche de changement de phase à t = 0
         playCloche();
 
         // Bascule entre Course et Marche
         if (currentPhase === 'RUN') {
           currentPhase = 'WALK';
-          timeLeft = DURATION_WALK;
+          timeLeft = durationWalk;
         } else {
           currentPhase = 'RUN';
-          timeLeft = DURATION_RUN;
+          timeLeft = durationRun;
         }
 
         countdownTriggered = false;
@@ -268,39 +271,78 @@
       updateUI();
     }
 
-    // Démarrage de l'entraînement
     async function startTimer() {
-      await initAudio();
+      // Autoriser le canal audio sur interaction utilisateur
+      audioCloche.load();
+      audioDecompte.load();
+
+      // Récupération des valeurs
+      durationRun = Math.max(5, parseInt(inputRun.value) || 30);
+      durationWalk = Math.max(5, parseInt(inputWalk.value) || 30);
+
+      // Enregistrement
+      localStorage.setItem('durationRun', durationRun);
+      localStorage.setItem('durationWalk', durationWalk);
+
       await requestWakeLock();
 
+      // Ajustement de l'affichage
+      settingsContainer.style.display = 'none';
       btnStart.style.display = 'none';
       btnReset.style.display = 'inline-block';
 
+      currentPhase = 'RUN';
+      timeLeft = durationRun;
       countdownTriggered = false;
+
+      updateUI();
+
+      // Cloche de départ immédiate
+      playCloche();
+
       timerInterval = setInterval(tick, 1000);
     }
 
-    // Arrêt / Réinitialisation
     function resetTimer() {
       clearInterval(timerInterval);
       timerInterval = null;
       releaseWakeLock();
 
       currentPhase = 'RUN';
-      timeLeft = DURATION_RUN;
+      timeLeft = durationRun;
       countdownTriggered = false;
 
+      // Arrêt des pistes sonores
+      audioCloche.pause();
+      audioDecompte.pause();
+
+      settingsContainer.style.display = 'grid';
       btnStart.style.display = 'inline-block';
       btnReset.style.display = 'none';
 
       updateUI();
     }
 
-    // Événements boutons
+    // Mise à jour de l'affichage en direct lors des modifications de réglage
+    inputRun.addEventListener('change', () => {
+      durationRun = Math.max(5, parseInt(inputRun.value) || 30);
+      if (!timerInterval && currentPhase === 'RUN') {
+        timeLeft = durationRun;
+        updateUI();
+      }
+    });
+
+    inputWalk.addEventListener('change', () => {
+      durationWalk = Math.max(5, parseInt(inputWalk.value) || 30);
+      if (!timerInterval && currentPhase === 'WALK') {
+        timeLeft = durationWalk;
+        updateUI();
+      }
+    });
+
     btnStart.addEventListener('click', startTimer);
     btnReset.addEventListener('click', resetTimer);
 
-    // Initialisation affichage
     updateUI();
   </script>
 </body>
