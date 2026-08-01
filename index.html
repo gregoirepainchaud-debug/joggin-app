@@ -130,6 +130,7 @@
         let totalTime = 0; // En secondes
         let currentState = ''; // 'Échauffement', 'Course', 'Marche'
         let isRunning = false;
+        let wakeLock = null;
         
         // Variables x, y, z
         let x = 0;
@@ -158,6 +159,25 @@
             localStorage.setItem('jogging_x', document.getElementById('x').value);
             localStorage.setItem('jogging_y', document.getElementById('y').value);
             localStorage.setItem('jogging_z', document.getElementById('z').value);
+        }
+
+        // Empêcher l'écran de se mettre en veille
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log("Wake Lock error:", err);
+            }
+        }
+
+        // Libérer le verrou d'écran
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+            }
         }
 
         // Convertir les secondes en format MM:SS
@@ -203,8 +223,9 @@
                 document.getElementById('status').innerText = 'Arrêté';
                 window.speechSynthesis.cancel();
 
-                // Sauvegarder le temps total à l'arrêt
+                // Sauvegarder le temps total et autoriser la mise en veille
                 localStorage.setItem('jogging_totalTime', totalTime);
+                releaseWakeLock();
                 return;
             }
 
@@ -222,6 +243,9 @@
             isRunning = true;
             btn.innerText = 'STOP';
             btn.classList.add('stop');
+
+            // Empêcher l'écran de s'éteindre pendant la course
+            requestWakeLock();
 
             startPhase('Échauffement', x);
             timer = setInterval(tick, 1000);
