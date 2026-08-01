@@ -78,15 +78,15 @@
     <div class="config-panel">
         <div class="input-group">
             <label for="x">Échauffement (sec):</label>
-            <input type="number" id="x" value="300">
+            <input type="number" id="x" value="300" onchange="saveSettings()">
         </div>
         <div class="input-group">
             <label for="y">Course (sec):</label>
-            <input type="number" id="y" value="60">
+            <input type="number" id="y" value="60" onchange="saveSettings()">
         </div>
         <div class="input-group">
             <label for="z">Marche (sec):</label>
-            <input type="number" id="z" value="60">
+            <input type="number" id="z" value="60" onchange="saveSettings()">
         </div>
     </div>
 
@@ -105,6 +105,26 @@
         let x = 0;
         let y = 0;
         let z = 0;
+
+        // Charger les paramètres enregistrés au démarrage
+        window.onload = function() {
+            if (localStorage.getItem('jogging_x')) {
+                document.getElementById('x').value = localStorage.getItem('jogging_x');
+            }
+            if (localStorage.getItem('jogging_y')) {
+                document.getElementById('y').value = localStorage.getItem('jogging_y');
+            }
+            if (localStorage.getItem('jogging_z')) {
+                document.getElementById('z').value = localStorage.getItem('jogging_z');
+            }
+        };
+
+        // Sauvegarder les valeurs dans le cache local de l'appareil
+        function saveSettings() {
+            localStorage.setItem('jogging_x', document.getElementById('x').value);
+            localStorage.setItem('jogging_y', document.getElementById('y').value);
+            localStorage.setItem('jogging_z', document.getElementById('z').value);
+        }
 
         // Fonction pour générer un son de cloche sans fichier audio
         function playBell() {
@@ -150,7 +170,9 @@
                 return;
             }
 
-            // Démarrer l'application
+            // Démarrer l'application & enregistrer les réglages actuels
+            saveSettings();
+
             x = parseInt(document.getElementById('x').value) || 0;
             y = parseInt(document.getElementById('y').value) || 0;
             z = parseInt(document.getElementById('z').value) || 0;
