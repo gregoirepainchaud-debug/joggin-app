@@ -202,12 +202,45 @@
   </div>
 
   <script>
-    const audioCloche = new Audio('cloche.wav');
-    const audioDecompte = new Audio('decompte_5s.wav');
-    
-    // Piste audio 100% silencieuse encodée en base64 pour forcer le maintien de la session Média (Ducking)
-    const audioSilence = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-    audioSilence.loop = true;
+    // --- GESTION AUDIO (Web Audio API) ---
+    let audioCtx = null;
+    let clocheBuffer = null;
+    let decompteBuffer = null;
+
+    async function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      
+      if (!clocheBuffer) {
+        clocheBuffer = await loadAudioBuffer('cloche.wav');
+      }
+      if (!decompteBuffer) {
+        decompteBuffer = await loadAudioBuffer('decompte_5s.wav');
+      }
+    }
+
+    async function loadAudioBuffer(url) {
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        return await audioCtx.decodeAudioData(arrayBuffer);
+      } catch (err) {
+        console.error(`Erreur de chargement de ${url}:`, err);
+        return null;
+      }
+    }
+
+    function playSound(buffer) {
+      if (!audioCtx || !buffer) return;
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+    }
 
     let durationWarmup = parseInt(localStorage.getItem('durationWarmup')) || 300;
     let durationRun = parseInt(localStorage.getItem('durationRun')) || 60;
@@ -252,7 +285,6 @@
 
     function speak(text) {
       if ('speechSynthesis' in window) {
-        // La fonction cancel() a été RETIRÉE car elle provoque le plantage de Spotify.
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'fr-CA'; 
         if (!qcVoice) setVoice();
@@ -283,16 +315,6 @@
          return text + " restante";
       }
       return text + " restantes";
-    }
-
-    function playCloche() {
-      audioCloche.currentTime = 0;
-      audioCloche.play().catch(err => console.warn("Erreur cloche:", err));
-    }
-
-    function playDecompte() {
-      audioDecompte.currentTime = 0;
-      audioDecompte.play().catch(err => console.warn("Erreur décompte:", err));
     }
 
     async function requestWakeLock() {
@@ -338,8 +360,9 @@
       
       let nextTime = timeLeft - 1;
 
+      // Décompte Web Audio API
       if (nextTime === 5 && !countdownTriggered) {
-        playDecompte();
+        playSound(decompteBuffer);
         countdownTriggered = true;
       }
 
@@ -354,7 +377,7 @@
       }
 
       if (nextTime <= 0) {
-        playCloche();
+        playSound(clocheBuffer);
         countdownTriggered = false;
 
         if (currentPhase === 'WARMUP' || currentPhase === 'WALK') {
@@ -376,11 +399,8 @@
     }
 
     async function startTimer() {
-      audioCloche.load();
-      audioDecompte.load();
-
-      // On lance la boucle de silence en arrière-plan pour monopoliser le canal média
-      audioSilence.play().catch(e => console.warn("Impossible de jouer le silence:", e));
+      // On initialise le contexte audio (doit être fait après un clic de l'utilisateur)
+      await initAudio();
 
       if ('speechSynthesis' in window) {
          window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
@@ -405,7 +425,7 @@
 
       updateUI();
       
-      playCloche();
+      playSound(clocheBuffer);
       setTimeout(() => speak("Échauffement " + formatDurationSpeech(durationWarmup)), 1000);
 
       await requestWakeLock();
@@ -417,9 +437,9 @@
       timerInterval = null;
       releaseWakeLock();
 
-      audioSilence.pause(); // On arrête le silence quand l'entraînement est fini
-      audioCloche.pause();
-      audioDecompte.pause();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
 
       currentPhase = 'WARMUP';
       timeLeft = durationWarmup;
