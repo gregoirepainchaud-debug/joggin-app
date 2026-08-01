@@ -170,25 +170,30 @@
             document.getElementById('totalDisplay').innerText = formatTime(totalTime);
         }
 
-        // Fonction pour générer un son de cloche sans fichier audio
+        // Cloche de comptoir d'hôtel (Ding!)
         function playBell() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
             const ctx = new AudioContext();
+
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            
+
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(800, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 1.5);
             
-            gain.gain.setValueAtTime(1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-            
+            // Attaque rapide pour simuler l'impact du petit marteau métallique
+            osc.frequency.setValueAtTime(2400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(2050, ctx.currentTime + 0.05);
+
+            // Attaque immédiate, résonance cristalline qui diminue graduellement
+            gain.gain.setValueAtTime(0.8, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
             osc.connect(gain);
             gain.connect(ctx.destination);
+
             osc.start();
-            osc.stop(ctx.currentTime + 1.5);
+            osc.stop(ctx.currentTime + 1.2);
         }
 
         // Fonction pour parler
