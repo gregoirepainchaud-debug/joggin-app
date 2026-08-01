@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>App Intervalles - Jogging</title>
 
-  <!-- Configuration pour l'icône et l'installation en app web sur iOS -->
   <link rel="apple-touch-icon" href="IconeCoureur.png">
   <link rel="icon" type="image/png" href="IconeCoureur.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -205,6 +204,10 @@
   <script>
     const audioCloche = new Audio('cloche.wav');
     const audioDecompte = new Audio('decompte_5s.wav');
+    
+    // Piste audio 100% silencieuse encodée en base64 pour forcer le maintien de la session Média (Ducking)
+    const audioSilence = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    audioSilence.loop = true;
 
     let durationWarmup = parseInt(localStorage.getItem('durationWarmup')) || 300;
     let durationRun = parseInt(localStorage.getItem('durationRun')) || 60;
@@ -249,7 +252,7 @@
 
     function speak(text) {
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+        // La fonction cancel() a été RETIRÉE car elle provoque le plantage de Spotify.
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'fr-CA'; 
         if (!qcVoice) setVoice();
@@ -376,6 +379,9 @@
       audioCloche.load();
       audioDecompte.load();
 
+      // On lance la boucle de silence en arrière-plan pour monopoliser le canal média
+      audioSilence.play().catch(e => console.warn("Impossible de jouer le silence:", e));
+
       if ('speechSynthesis' in window) {
          window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
       }
@@ -411,10 +417,7 @@
       timerInterval = null;
       releaseWakeLock();
 
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-
+      audioSilence.pause(); // On arrête le silence quand l'entraînement est fini
       audioCloche.pause();
       audioDecompte.pause();
 
