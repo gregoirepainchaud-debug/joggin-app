@@ -15,9 +15,10 @@
             text-align: center;
             background-color: #f4f4f9;
             color: #333;
-            padding-top: 30px;
+            padding-top: 20px;
+            padding-bottom: 40px;
         }
-        h1 { margin-bottom: 30px; }
+        h1 { margin-bottom: 20px; }
         .config-panel {
             background: white;
             max-width: 350px;
@@ -49,7 +50,7 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            margin-top: 25px;
+            margin-top: 20px;
             width: 200px;
             transition: background-color 0.3s;
         }
@@ -59,15 +60,35 @@
         #status {
             font-size: 28px;
             font-weight: bold;
-            margin-top: 40px;
+            margin-top: 30px;
             color: #555;
             text-transform: uppercase;
         }
         #display {
             font-size: 80px;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 5px;
             color: #007bff;
+        }
+        .total-container {
+            margin-top: 30px;
+            background: #e9ecef;
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 8px;
+        }
+        .total-label {
+            font-size: 14px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+        #totalDisplay {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -95,9 +116,15 @@
     <div id="status">Prêt</div>
     <div id="display">0</div>
 
+    <div class="total-container">
+        <div class="total-label">Temps Total</div>
+        <div id="totalDisplay">00:00</div>
+    </div>
+
     <script>
         let timer = null;
         let timeLeft = 0;
+        let totalTime = 0; // En secondes
         let currentState = ''; // 'Échauffement', 'Course', 'Marche'
         let isRunning = false;
         
@@ -117,6 +144,10 @@
             if (localStorage.getItem('jogging_z')) {
                 document.getElementById('z').value = localStorage.getItem('jogging_z');
             }
+            if (localStorage.getItem('jogging_totalTime')) {
+                totalTime = parseInt(localStorage.getItem('jogging_totalTime')) || 0;
+                updateTotalDisplay();
+            }
         };
 
         // Sauvegarder les valeurs dans le cache local de l'appareil
@@ -124,6 +155,19 @@
             localStorage.setItem('jogging_x', document.getElementById('x').value);
             localStorage.setItem('jogging_y', document.getElementById('y').value);
             localStorage.setItem('jogging_z', document.getElementById('z').value);
+        }
+
+        // Convertir les secondes en format MM:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            const formattedMins = mins < 10 ? '0' + mins : mins;
+            const formattedSecs = secs < 10 ? '0' + secs : secs;
+            return `${formattedMins}:${formattedSecs}`;
+        }
+
+        function updateTotalDisplay() {
+            document.getElementById('totalDisplay').innerText = formatTime(totalTime);
         }
 
         // Fonction pour générer un son de cloche sans fichier audio
@@ -167,6 +211,9 @@
                 btn.classList.remove('stop');
                 document.getElementById('status').innerText = 'Arrêté';
                 window.speechSynthesis.cancel();
+
+                // Sauvegarder le temps total à l'arrêt
+                localStorage.setItem('jogging_totalTime', totalTime);
                 return;
             }
 
@@ -176,6 +223,10 @@
             x = parseInt(document.getElementById('x').value) || 0;
             y = parseInt(document.getElementById('y').value) || 0;
             z = parseInt(document.getElementById('z').value) || 0;
+
+            // Réinitialiser le temps total pour la nouvelle séance
+            totalTime = 0;
+            updateTotalDisplay();
 
             isRunning = true;
             btn.innerText = 'STOP';
@@ -198,6 +249,10 @@
         }
 
         function tick() {
+            // Incrémenter le temps total écoulé
+            totalTime++;
+            updateTotalDisplay();
+
             if (timeLeft > 0) {
                 timeLeft--;
                 updateDisplay();
