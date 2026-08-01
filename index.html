@@ -121,6 +121,9 @@
         <div id="totalDisplay">00:00</div>
     </div>
 
+    <!-- Élément audio WAV -->
+    <audio id="bellAudio" src="cloche.wav" preload="auto"></audio>
+
     <script>
         let timer = null;
         let timeLeft = 0;
@@ -170,30 +173,13 @@
             document.getElementById('totalDisplay').innerText = formatTime(totalTime);
         }
 
-        // Cloche de comptoir d'hôtel (Ding!)
+        // Jouer le fichier WAV
         function playBell() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'sine';
-            
-            // Attaque rapide pour simuler l'impact du petit marteau métallique
-            osc.frequency.setValueAtTime(2400, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(2050, ctx.currentTime + 0.05);
-
-            // Attaque immédiate, résonance cristalline qui diminue graduellement
-            gain.gain.setValueAtTime(0.8, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start();
-            osc.stop(ctx.currentTime + 1.2);
+            const audio = document.getElementById('bellAudio');
+            if (audio) {
+                audio.currentTime = 0; // Remet au début si joué plusieurs fois rapidement
+                audio.play().catch(e => console.log("Erreur de lecture audio :", e));
+            }
         }
 
         // Fonction pour parler
