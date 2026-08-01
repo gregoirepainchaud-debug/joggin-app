@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>App Intervalles - Jogging</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
+
+  <!-- Configuration pour l'icône et l'installation en app web sur iOS -->
+  <link rel="apple-touch-icon" href="IconeCoureur.png">
+  <link rel="icon" type="image/png" href="IconeCoureur.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Jogging">
+
   <style>
     :root {
       --bg-color: #121212;
@@ -29,7 +36,7 @@
       justify-content: center;
       min-height: 100vh;
       box-sizing: border-box;
-      overflow-x: hidden; /* Empêche le débordement horizontal */
+      overflow-x: hidden;
     }
 
     .card {
@@ -37,15 +44,30 @@
       border-radius: 16px;
       padding: 24px 16px;
       width: 100%;
-      max-width: 360px; /* Adapté aux petits écrans d'iPhone */
+      max-width: 360px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       text-align: center;
       box-sizing: border-box;
     }
 
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 0.5rem;
+    }
+
+    .app-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+
     h1 {
       font-size: 1.3rem;
-      margin-bottom: 0.5rem;
+      margin: 0;
       color: var(--text-color);
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -57,7 +79,6 @@
       margin-bottom: 1.5rem;
     }
 
-    /* Remplacement de la grille par une colonne centrée */
     .settings-column {
       display: flex;
       flex-direction: column;
@@ -72,7 +93,7 @@
       flex-direction: column;
       gap: 6px;
       width: 100%;
-      max-width: 220px; /* Maintient les champs à une belle taille sans toucher les bords */
+      max-width: 220px;
     }
 
     .input-group label {
@@ -101,7 +122,7 @@
     }
 
     .timer-display {
-      font-size: 4rem; /* Légèrement réduit pour être sûr qu'il rentre sur tous les écrans */
+      font-size: 4rem;
       font-weight: bold;
       margin: 0.5rem 0;
       font-variant-numeric: tabular-nums;
@@ -151,7 +172,10 @@
 <body>
 
   <div class="card">
-    <h1>🏃 Entraînement</h1>
+    <div class="app-header">
+      <img src="IconeCoureur.png" alt="Icône Coureur" class="app-icon">
+      <h1>Entraînement</h1>
+    </div>
     <div class="total-time" id="totalTimeDisplay">Temps total : 00:00</div>
 
     <div class="settings-column" id="settingsContainer">
@@ -179,11 +203,9 @@
   </div>
 
   <script>
-    // Fichiers audios
     const audioCloche = new Audio('cloche.wav');
     const audioDecompte = new Audio('decompte_5s.wav');
 
-    // Récupération des réglages
     let durationWarmup = parseInt(localStorage.getItem('durationWarmup')) || 300;
     let durationRun = parseInt(localStorage.getItem('durationRun')) || 60;
     let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 60;
@@ -197,7 +219,6 @@
     let countdownTriggered = false;
     let qcVoice = null; 
 
-    // Éléments du DOM
     const inputWarmup = document.getElementById('inputWarmup');
     const inputRun = document.getElementById('inputRun');
     const inputWalk = document.getElementById('inputWalk');
@@ -212,8 +233,6 @@
     inputWarmup.value = durationWarmup;
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
-
-    // --- SYNTHÈSE VOCALE ET FORMATAGE ---
 
     function setVoice() {
       const voices = window.speechSynthesis.getVoices();
@@ -263,8 +282,6 @@
       return text + " restantes";
     }
 
-    // --- FONCTIONS AUDIO DE BASE ---
-
     function playCloche() {
       audioCloche.currentTime = 0;
       audioCloche.play().catch(err => console.warn("Erreur cloche:", err));
@@ -313,20 +330,16 @@
       }
     }
 
-    // --- LOGIQUE DU CHRONOMÈTRE ---
-
     function tick() {
       totalTimeElapsed++;
       
       let nextTime = timeLeft - 1;
 
-      // Déclenche le décompte Spotify exactement au changement vers la 5e seconde
       if (nextTime === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
       }
 
-      // Rappels vocaux du temps restant
       if (nextTime > 5) {
         if (currentPhase === 'WARMUP' && nextTime % 60 === 0) {
           speak(formatTimeRemainingSpeech(nextTime));
@@ -337,7 +350,6 @@
         }
       }
 
-      // Changement de phase
       if (nextTime <= 0) {
         playCloche();
         countdownTriggered = false;
@@ -411,7 +423,6 @@
       totalTimeElapsed = 0;
       countdownTriggered = false;
 
-      // Utilisation du display block ou flex standard au lieu du grid
       settingsContainer.style.display = 'flex';
       btnStart.style.display = 'inline-block';
       btnReset.style.display = 'none';
