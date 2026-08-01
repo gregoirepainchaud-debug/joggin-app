@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intervalles de Jogging</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            color: #333;
+            padding-top: 30px;
+        }
+        h1 { margin-bottom: 30px; }
+        .config-panel {
+            background: white;
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        input {
+            width: 80px;
+            padding: 8px;
+            font-size: 16px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #btnStart {
+            background-color: #28a745;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 25px;
+            width: 200px;
+            transition: background-color 0.3s;
+        }
+        #btnStart.stop {
+            background-color: #dc3545;
+        }
+        #status {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 40px;
+            color: #555;
+            text-transform: uppercase;
+        }
+        #display {
+            font-size: 80px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Intervalles de Jogging</h1>
+    
+    <div class="config-panel">
+        <div class="input-group">
+            <label for="x">Échauffement (sec):</label>
+            <input type="number" id="x" value="300">
+        </div>
+        <div class="input-group">
+            <label for="y">Course (sec):</label>
+            <input type="number" id="y" value="60">
+        </div>
+        <div class="input-group">
+            <label for="z">Marche (sec):</label>
+            <input type="number" id="z" value="60">
+        </div>
+    </div>
+
+    <button id="btnStart" onclick="toggleTimer()">START</button>
+
+    <div id="status">Prêt</div>
+    <div id="display">0</div>
+
+    <script>
+        let timer = null;
+        let timeLeft = 0;
+        let currentState = ''; // 'Échauffement', 'Course', 'Marche'
+        let isRunning = false;
+        
+        // Variables x, y, z
+        let x = 0;
+        let y = 0;
+        let z = 0;
+
+        // Fonction pour générer un son de cloche sans fichier audio
+        function playBell() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 1.5);
+            
+            gain.gain.setValueAtTime(1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 1.5);
+        }
+
+        // Fonction pour parler
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'fr-CA'; // Accent québécois
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('btnStart');
+            
+            if (isRunning) {
+                // Arrêter l'application
+                clearInterval(timer);
+                isRunning = false;
+                btn.innerText = 'START';
+                btn.classList.remove('stop');
+                document.getElementById('status').innerText = 'Arrêté';
+                window.speechSynthesis.cancel();
+                return;
+            }
+
+            // Démarrer l'application
+            x = parseInt(document.getElementById('x').value) || 0;
+            y = parseInt(document.getElementById('y').value) || 0;
+            z = parseInt(document.getElementById('z').value) || 0;
+
+            isRunning = true;
+            btn.innerText = 'STOP';
+            btn.classList.add('stop');
+
+            startPhase('Échauffement', x);
+            timer = setInterval(tick, 1000);
+        }
+
+        function startPhase(phase, duration) {
+            currentState = phase;
+            timeLeft = duration;
+            updateDisplay();
+            playBell();
+
+            // Léger délai pour que la voix ne parle pas en même temps que la cloche
+            setTimeout(() => {
+                speak(`${phase} ${duration} secondes`);
+            }, 800);
+        }
+
+        function tick() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateDisplay();
+
+                // Rappel aux 15 secondes (seulement s'il reste du temps)
+                if (timeLeft > 0 && timeLeft % 15 === 0) {
+                    speak(`${timeLeft} secondes`);
+                }
+
+                // Fin du décompte : on passe à la prochaine étape
+                if (timeLeft === 0) {
+                    if (currentState === 'Échauffement' || currentState === 'Marche') {
+                        startPhase('Course', y);
+                    } else if (currentState === 'Course') {
+                        startPhase('Marche', z);
+                    }
+                }
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('display').innerText = timeLeft;
+            document.getElementById('status').innerText = currentState;
+        }
+    </script>
+</body>
+</html>
