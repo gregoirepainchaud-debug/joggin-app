@@ -183,7 +183,6 @@
     let wakeLock = null;
     let countdownTriggered = false;
 
-    // Éléments du DOM
     const inputWarmup = document.getElementById('inputWarmup');
     const inputRun = document.getElementById('inputRun');
     const inputWalk = document.getElementById('inputWalk');
@@ -199,7 +198,6 @@
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
 
-    // Synthèse vocale
     function speak(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -209,7 +207,6 @@
       }
     }
     
-    // Convertir les secondes en texte parlé naturel (ex: "1 minute et 30 secondes")
     function formatTimeToSpeech(seconds) {
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
@@ -278,13 +275,13 @@
     function tick() {
       totalTimeElapsed++;
 
-      // Déclenche le fichier audio de 5 secondes
+      // Décompte Spotify-friendly
       if (timeLeft === 5 && !countdownTriggered) {
         playDecompte();
         countdownTriggered = true;
       }
 
-      // Rappels vocaux du temps restant (ignoré si on est à 5 secondes ou moins pour ne pas chevaucher le fichier audio)
+      // Rappels vocaux du temps restant
       if (timeLeft > 5) {
         if (currentPhase === 'WARMUP' && timeLeft % 60 === 0) {
           speak("Il reste " + formatTimeToSpeech(timeLeft));
@@ -319,6 +316,7 @@
     }
 
     async function startTimer() {
+      // 1. Charger les audios sur le clic
       audioCloche.load();
       audioDecompte.load();
 
@@ -326,12 +324,17 @@
       durationRun = Math.max(5, parseInt(inputRun.value) || 60);
       durationWalk = Math.max(5, parseInt(inputWalk.value) || 60);
 
+      // 2. PARLER TOUT DE SUITE ! (Avant l'await)
+      // Cela "débloque" la voix pour le système mobile de façon permanente
+      speak("Échauffement, " + formatTimeToSpeech(durationWarmup));
+      playCloche();
+
+      // 3. Sauvegarder les paramètres
       localStorage.setItem('durationWarmup', durationWarmup);
       localStorage.setItem('durationRun', durationRun);
       localStorage.setItem('durationWalk', durationWalk);
 
-      await requestWakeLock();
-
+      // 4. Mettre à jour l'interface
       settingsContainer.style.display = 'none';
       btnStart.style.display = 'none';
       btnReset.style.display = 'inline-block';
@@ -342,8 +345,9 @@
       countdownTriggered = false;
 
       updateUI();
-      playCloche();
-      speak("Échauffement, " + formatTimeToSpeech(durationWarmup));
+      
+      // 5. SEULEMENT ENSUITE, demander le Wake Lock qui est asynchrone (await)
+      await requestWakeLock();
 
       timerInterval = setInterval(tick, 1000);
     }
