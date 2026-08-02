@@ -307,6 +307,8 @@
 
     let audioCtx = null;
     let masterGain = null;
+    let speechGain = null;
+    let speechLimiter = null;
     let audioAssetsPromise = null;
     let scheduledAudioUntil = 0;
 
@@ -343,6 +345,22 @@
         masterGain = audioCtx.createGain();
         masterGain.gain.value = 1;
         masterGain.connect(audioCtx.destination);
+
+        // Les fichiers du dossier speech sont augmentés de +3 dB.
+        // Gain linéaire = 10^(3/20), soit environ 1,413.
+        speechGain = audioCtx.createGain();
+        speechGain.gain.value = Math.pow(10, 3 / 20);
+
+        // Limiteur léger pour réduire le risque de saturation après le gain.
+        speechLimiter = audioCtx.createDynamicsCompressor();
+        speechLimiter.threshold.value = -3;
+        speechLimiter.knee.value = 3;
+        speechLimiter.ratio.value = 12;
+        speechLimiter.attack.value = 0.003;
+        speechLimiter.release.value = 0.08;
+
+        speechGain.connect(speechLimiter);
+        speechLimiter.connect(masterGain);
       }
 
       if (audioCtx.state === "suspended") {
@@ -467,7 +485,12 @@
 
         const source = audioCtx.createBufferSource();
         source.buffer = buffer;
-        source.connect(masterGain);
+
+        if (item.type === "speech") {
+          source.connect(speechGain);
+        } else {
+          source.connect(masterGain);
+        }
 
         activeSources.add(source);
 
@@ -500,7 +523,7 @@
 
     function playBellThenSpeech(clipNames) {
       const items = [
-        { type: "system", name: "bell", gapAfter: 0.7 },
+        { type: "system", name: "bell", gapAfter: 0.25 },
         ...clipNames.map(name => ({ type: "speech", name }))
       ];
 
