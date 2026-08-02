@@ -792,14 +792,22 @@
         return false;
       }
 
+      // Toutes les phases annoncent toujours les 15 dernières secondes.
+      if (nextTime === 15) {
+        return true;
+      }
+
+      // Échauffement : annonce chaque minute.
       if (currentPhase === "WARMUP") {
         return nextTime % 60 === 0;
       }
 
+      // Marche : annonce chaque tranche de 30 secondes.
       if (currentPhase === "WALK") {
         return nextTime % 30 === 0;
       }
 
+      // Course : annonce chaque tranche de 15 secondes.
       return nextTime % 15 === 0;
     }
 
