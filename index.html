@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
   <title>App Intervalles - Jogging</title>
 
   <link rel="apple-touch-icon" href="IconeCoureur.png">
@@ -21,6 +24,11 @@
       --text-color: #ffffff;
       --subtext-color: #b0b0b0;
       --input-bg: #2a2a2a;
+      --warning-color: #ffcc80;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
@@ -34,7 +42,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      box-sizing: border-box;
+      min-height: 100dvh;
       overflow-x: hidden;
     }
 
@@ -46,7 +54,6 @@
       max-width: 360px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       text-align: center;
-      box-sizing: border-box;
     }
 
     .app-header {
@@ -71,7 +78,7 @@
       text-transform: uppercase;
       letter-spacing: 1px;
     }
-    
+
     .total-time {
       font-size: 1rem;
       color: var(--subtext-color);
@@ -112,7 +119,6 @@
       font-weight: bold;
       text-align: center;
       width: 100%;
-      box-sizing: border-box;
     }
 
     .input-group input:focus {
@@ -136,12 +142,22 @@
       border-radius: 8px;
       display: inline-block;
       max-width: 100%;
-      box-sizing: border-box;
     }
 
-    .phase-warmup { color: var(--accent-warmup); background-color: rgba(255, 183, 77, 0.15); }
-    .phase-run { color: var(--accent-run); background-color: rgba(255, 82, 82, 0.15); }
-    .phase-walk { color: var(--accent-walk); background-color: rgba(76, 175, 80, 0.15); }
+    .phase-warmup {
+      color: var(--accent-warmup);
+      background-color: rgba(255, 183, 77, 0.15);
+    }
+
+    .phase-run {
+      color: var(--accent-run);
+      background-color: rgba(255, 82, 82, 0.15);
+    }
+
+    .phase-walk {
+      color: var(--accent-walk);
+      background-color: rgba(76, 175, 80, 0.15);
+    }
 
     .controls {
       display: flex;
@@ -162,33 +178,55 @@
       cursor: pointer;
       width: 100%;
       max-width: 250px;
-      box-sizing: border-box;
     }
-    button.btn-primary { background-color: #388e3c; }
-    button.btn-stop { background-color: #d32f2f; }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    button.btn-primary {
+      background-color: #388e3c;
+    }
+
+    button.btn-stop {
+      background-color: #d32f2f;
+    }
+
+    .status-message {
+      display: none;
+      margin-top: 14px;
+      color: var(--warning-color);
+      font-size: 0.78rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
   </style>
 </head>
-<body>
 
+<body>
   <div class="card">
     <div class="app-header">
       <img src="IconeCoureur.png" alt="Icône Coureur" class="app-icon">
       <h1>Entraînement</h1>
     </div>
+
     <div class="total-time" id="totalTimeDisplay">Temps total : 00:00</div>
 
     <div class="settings-column" id="settingsContainer">
       <div class="input-group">
         <label for="inputWarmup">Échauffement (sec)</label>
-        <input type="number" id="inputWarmup" min="5" value="300">
+        <input type="number" inputmode="numeric" id="inputWarmup" min="5" step="1" value="300">
       </div>
+
       <div class="input-group">
         <label for="inputRun">Course (sec)</label>
-        <input type="number" id="inputRun" min="5" value="60">
+        <input type="number" inputmode="numeric" id="inputRun" min="5" step="1" value="60">
       </div>
+
       <div class="input-group">
         <label for="inputWalk">Marche (sec)</label>
-        <input type="number" id="inputWalk" min="5" value="60">
+        <input type="number" inputmode="numeric" id="inputWalk" min="5" step="1" value="60">
       </div>
     </div>
 
@@ -199,270 +237,684 @@
       <button id="btnStart" class="btn-primary">Démarrer</button>
       <button id="btnReset" class="btn-stop" style="display: none;">Arrêter</button>
     </div>
+
+    <div id="statusMessage" class="status-message" aria-live="polite"></div>
   </div>
 
   <script>
-    // --- GESTION AUDIO (Web Audio API) ---
+    "use strict";
+
+    /*
+      STRUCTURE DES FICHIERS
+
+      Racine du site :
+        index.html
+        IconeCoureur.png
+        cloche.wav
+        decompte_5s.wav
+
+      Sous-répertoire :
+        speech/
+          courir.mp3
+          marcher.mp3
+          echauffement.mp3
+          etc.
+
+      Pour chaque mot, le code essaie d'abord le MP3, puis le WAV.
+    */
+
+    // -------------------------------------------------------------------------
+    // CONFIGURATION AUDIO
+    // -------------------------------------------------------------------------
+
+    const SPEECH_DIRECTORY = "speech/";
+    const SPEECH_EXTENSIONS = ["mp3", "wav"];
+
+    const SYSTEM_AUDIO_FILES = {
+      bell: "cloche.wav",
+      countdown: "decompte_5s.wav"
+    };
+
+    /*
+      Ces cinq fichiers ne figuraient pas dans la liste fournie, mais ils sont
+      nécessaires pour produire toutes les phrases correctement :
+
+        speech/seconde.mp3
+        speech/minutes.mp3
+        speech/restantes.mp3
+        speech/40.mp3
+        speech/50.mp3
+
+      Le code accepte aussi leur version .wav.
+    */
+    const REQUIRED_SPEECH_CLIPS = [
+      "seconde",
+      "secondes",
+      "minute",
+      "minutes",
+      "et",
+      "restante",
+      "restantes",
+      "courir",
+      "marcher",
+      "echauffement",
+      "soixante",
+      "40",
+      "45",
+      "50",
+      ...Array.from({ length: 29 }, (_, index) => String(index + 2))
+    ];
+
     let audioCtx = null;
-    let clocheBuffer = null;
-    let decompteBuffer = null;
+    let masterGain = null;
+    let audioAssetsPromise = null;
+    let scheduledAudioUntil = 0;
+
+    const speechBuffers = new Map();
+    const systemBuffers = new Map();
+    const activeSources = new Set();
+
+    function configureAudioSession() {
+      /*
+        "transient" est le meilleur choix web pour tenter de jouer par-dessus
+        Spotify et, lorsque le système le permet, réduire temporairement son
+        volume. Le ducking exact reste décidé par iOS.
+      */
+      if ("audioSession" in navigator) {
+        try {
+          navigator.audioSession.type = "transient";
+        } catch (error) {
+          console.warn("AudioSession transient non disponible :", error);
+        }
+      }
+    }
 
     async function initAudio() {
+      configureAudioSession();
+
       if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+          throw new Error("Web Audio API non disponible sur ce navigateur.");
+        }
+
+        audioCtx = new AudioContextClass();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 1;
+        masterGain.connect(audioCtx.destination);
       }
-      if (audioCtx.state === 'suspended') {
+
+      if (audioCtx.state === "suspended") {
         await audioCtx.resume();
       }
-      
-      if (!clocheBuffer) {
-        clocheBuffer = await loadAudioBuffer('cloche.wav');
+
+      // Petit son silencieux pour déverrouiller Web Audio après le toucher.
+      const silentBuffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const silentSource = audioCtx.createBufferSource();
+      silentSource.buffer = silentBuffer;
+      silentSource.connect(masterGain);
+      silentSource.start();
+
+      if (!audioAssetsPromise) {
+        audioAssetsPromise = loadAllAudioAssets();
       }
-      if (!decompteBuffer) {
-        decompteBuffer = await loadAudioBuffer('decompte_5s.wav');
-      }
+
+      await audioAssetsPromise;
     }
 
-    async function loadAudioBuffer(url) {
+    async function fetchAndDecodeAudio(url) {
+      const response = await fetch(url, { cache: "force-cache" });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      return await audioCtx.decodeAudioData(arrayBuffer);
+    }
+
+    async function loadSpeechClip(name) {
+      if (speechBuffers.has(name)) {
+        return true;
+      }
+
+      for (const extension of SPEECH_EXTENSIONS) {
+        const url = `${SPEECH_DIRECTORY}${name}.${extension}`;
+
+        try {
+          const buffer = await fetchAndDecodeAudio(url);
+          speechBuffers.set(name, buffer);
+          return true;
+        } catch (error) {
+          console.debug(`Impossible de charger ${url}`, error);
+        }
+      }
+
+      return false;
+    }
+
+    async function loadSystemClip(name, url) {
       try {
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        return await audioCtx.decodeAudioData(arrayBuffer);
-      } catch (err) {
-        console.error(`Erreur de chargement de ${url}:`, err);
-        return null;
+        const buffer = await fetchAndDecodeAudio(url);
+        systemBuffers.set(name, buffer);
+        return true;
+      } catch (error) {
+        console.error(`Impossible de charger ${url}`, error);
+        return false;
       }
     }
 
-    function playSound(buffer) {
-      if (!audioCtx || !buffer) return;
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      source.start(0);
+    async function loadAllAudioAssets() {
+      const missingFiles = [];
+
+      const systemResults = await Promise.all(
+        Object.entries(SYSTEM_AUDIO_FILES).map(async ([name, url]) => {
+          const loaded = await loadSystemClip(name, url);
+          if (!loaded) {
+            missingFiles.push(url);
+          }
+        })
+      );
+
+      const speechResults = await Promise.all(
+        [...new Set(REQUIRED_SPEECH_CLIPS)].map(async (name) => {
+          const loaded = await loadSpeechClip(name);
+          if (!loaded) {
+            missingFiles.push(`${SPEECH_DIRECTORY}${name}.mp3 ou .wav`);
+          }
+        })
+      );
+
+      if (missingFiles.length > 0) {
+        showStatus(
+          "Fichiers audio introuvables : " + missingFiles.join(", ")
+        );
+      } else {
+        clearStatus();
+      }
+
+      return { systemResults, speechResults };
     }
 
-    let durationWarmup = parseInt(localStorage.getItem('durationWarmup')) || 300;
-    let durationRun = parseInt(localStorage.getItem('durationRun')) || 60;
-    let durationWalk = parseInt(localStorage.getItem('durationWalk')) || 60;
+    function getBuffer(item) {
+      if (item.type === "system") {
+        return systemBuffers.get(item.name) || null;
+      }
 
-    let currentPhase = 'WARMUP'; 
+      return speechBuffers.get(item.name) || null;
+    }
+
+    function scheduleAudioSequence(items, defaultGap = 0.055) {
+      if (!audioCtx || audioCtx.state !== "running") {
+        return;
+      }
+
+      configureAudioSession();
+
+      let startTime = Math.max(
+        audioCtx.currentTime + 0.025,
+        scheduledAudioUntil
+      );
+
+      for (const item of items) {
+        const buffer = getBuffer(item);
+
+        if (!buffer) {
+          console.warn("Clip ignoré, car il est absent :", item);
+          continue;
+        }
+
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(masterGain);
+
+        activeSources.add(source);
+
+        source.onended = () => {
+          activeSources.delete(source);
+        };
+
+        source.start(startTime);
+
+        const gapAfter =
+          typeof item.gapAfter === "number" ? item.gapAfter : defaultGap;
+
+        startTime += buffer.duration + gapAfter;
+      }
+
+      scheduledAudioUntil = startTime;
+    }
+
+    function playSystemSound(name) {
+      scheduleAudioSequence([
+        { type: "system", name, gapAfter: 0 }
+      ]);
+    }
+
+    function playSpeechSequence(clipNames) {
+      scheduleAudioSequence(
+        clipNames.map(name => ({ type: "speech", name }))
+      );
+    }
+
+    function playBellThenSpeech(clipNames) {
+      const items = [
+        { type: "system", name: "bell", gapAfter: 0.7 },
+        ...clipNames.map(name => ({ type: "speech", name }))
+      ];
+
+      scheduleAudioSequence(items);
+    }
+
+    function stopAllAudio() {
+      for (const source of activeSources) {
+        try {
+          source.stop();
+        } catch (error) {
+          // La source était peut-être déjà terminée.
+        }
+      }
+
+      activeSources.clear();
+
+      if (audioCtx) {
+        scheduledAudioUntil = audioCtx.currentTime;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // ASSEMBLAGE DES PHRASES
+    // -------------------------------------------------------------------------
+
+    function numberToClipNames(number) {
+      const n = Math.trunc(number);
+
+      if (n === 1) {
+        return ["une"];
+      }
+
+      if (n >= 2 && n <= 30) {
+        return [String(n)];
+      }
+
+      if (n >= 31 && n <= 39) {
+        if (n === 31) {
+          return ["30", "et", "une"];
+        }
+
+        return ["30", String(n - 30)];
+      }
+
+      if (n >= 40 && n <= 49) {
+        if (n === 40) {
+          return ["40"];
+        }
+
+        if (n === 41) {
+          return ["40", "et", "une"];
+        }
+
+        if (n === 45) {
+          return ["45"];
+        }
+
+        return ["40", String(n - 40)];
+      }
+
+      if (n >= 50 && n <= 59) {
+        if (n === 50) {
+          return ["50"];
+        }
+
+        if (n === 51) {
+          return ["50", "et", "une"];
+        }
+
+        return ["50", String(n - 50)];
+      }
+
+      if (n === 60) {
+        return ["soixante"];
+      }
+
+      /*
+        Le minuteur continue de fonctionner si une valeur dépasse 60.
+        Seule l'annonce vocale de ce nombre sera omise.
+      */
+      console.warn(`Aucun assemblage vocal défini pour le nombre ${n}.`);
+      return [];
+    }
+
+    function durationToClipNames(totalSeconds) {
+      const secondsValue = Math.max(0, Math.trunc(totalSeconds));
+      const minutes = Math.floor(secondsValue / 60);
+      const seconds = secondsValue % 60;
+      const clips = [];
+
+      if (minutes > 0) {
+        clips.push(...numberToClipNames(minutes));
+        clips.push(minutes === 1 ? "minute" : "minutes");
+      }
+
+      if (minutes > 0 && seconds > 0) {
+        clips.push("et");
+      }
+
+      if (seconds > 0) {
+        clips.push(...numberToClipNames(seconds));
+        clips.push(seconds === 1 ? "seconde" : "secondes");
+      }
+
+      return clips;
+    }
+
+    function remainingTimeToClipNames(totalSeconds) {
+      const clips = durationToClipNames(totalSeconds);
+
+      const singular =
+        totalSeconds === 1 ||
+        totalSeconds === 60;
+
+      clips.push(singular ? "restante" : "restantes");
+      return clips;
+    }
+
+    function phaseToClipName(phase) {
+      if (phase === "WARMUP") {
+        return "echauffement";
+      }
+
+      if (phase === "RUN") {
+        return "courir";
+      }
+
+      return "marcher";
+    }
+
+    function announcePhase(phase, duration, withBell = false) {
+      const clips = [
+        phaseToClipName(phase),
+        ...durationToClipNames(duration)
+      ];
+
+      if (withBell) {
+        playBellThenSpeech(clips);
+      } else {
+        playSpeechSequence(clips);
+      }
+    }
+
+    function announceRemainingTime(seconds) {
+      playSpeechSequence(remainingTimeToClipNames(seconds));
+    }
+
+    // -------------------------------------------------------------------------
+    // MINUTEUR
+    // -------------------------------------------------------------------------
+
+    let durationWarmup =
+      parseInt(localStorage.getItem("durationWarmup"), 10) || 300;
+
+    let durationRun =
+      parseInt(localStorage.getItem("durationRun"), 10) || 60;
+
+    let durationWalk =
+      parseInt(localStorage.getItem("durationWalk"), 10) || 60;
+
+    let currentPhase = "WARMUP";
     let timeLeft = durationWarmup;
     let totalTimeElapsed = 0;
-    
+
     let timerInterval = null;
     let wakeLock = null;
     let countdownTriggered = false;
-    let qcVoice = null; 
 
-    const inputWarmup = document.getElementById('inputWarmup');
-    const inputRun = document.getElementById('inputRun');
-    const inputWalk = document.getElementById('inputWalk');
-    
-    const settingsContainer = document.getElementById('settingsContainer');
-    const timerDisplay = document.getElementById('timerDisplay');
-    const totalTimeDisplay = document.getElementById('totalTimeDisplay');
-    const phaseDisplay = document.getElementById('phaseDisplay');
-    const btnStart = document.getElementById('btnStart');
-    const btnReset = document.getElementById('btnReset');
+    const inputWarmup = document.getElementById("inputWarmup");
+    const inputRun = document.getElementById("inputRun");
+    const inputWalk = document.getElementById("inputWalk");
+
+    const settingsContainer = document.getElementById("settingsContainer");
+    const timerDisplay = document.getElementById("timerDisplay");
+    const totalTimeDisplay = document.getElementById("totalTimeDisplay");
+    const phaseDisplay = document.getElementById("phaseDisplay");
+    const btnStart = document.getElementById("btnStart");
+    const btnReset = document.getElementById("btnReset");
+    const statusMessage = document.getElementById("statusMessage");
 
     inputWarmup.value = durationWarmup;
     inputRun.value = durationRun;
     inputWalk.value = durationWalk;
 
-    function setVoice() {
-      const voices = window.speechSynthesis.getVoices();
-      qcVoice = voices.find(v => v.lang === 'fr-CA' && v.name.includes('Amélie')) 
-             || voices.find(v => v.lang === 'fr-CA' && (v.name.includes('female') || v.name.includes('Female')))
-             || voices.find(v => v.lang === 'fr-CA')
-             || voices.find(v => v.lang.startsWith('fr') && (v.name.includes('female') || v.name.includes('Female')))
-             || voices.find(v => v.lang.startsWith('fr'));
+    function showStatus(message) {
+      statusMessage.textContent = message;
+      statusMessage.style.display = "block";
     }
 
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = setVoice;
+    function clearStatus() {
+      statusMessage.textContent = "";
+      statusMessage.style.display = "none";
     }
 
-    function speak(text) {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'fr-CA'; 
-        if (!qcVoice) setVoice();
-        if (qcVoice) utterance.voice = qcVoice;
-        
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-    
-    function formatDurationSpeech(seconds) {
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      let text = "";
-      
-      if (m > 0) text += m + (m === 1 ? " minute" : " minutes");
-      if (m > 0 && s > 0) text += " et ";
-      if (s > 0) text += s + (s === 1 ? " seconde" : " secondes");
-      
-      return text;
-    }
-
-    function formatTimeRemainingSpeech(seconds) {
-      const text = formatDurationSpeech(seconds);
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      
-      if ((m === 1 && s === 0) || (m === 0 && s === 1)) {
-         return text + " restante";
-      }
-      return text + " restantes";
+    function readDuration(input, fallback) {
+      const parsed = parseInt(input.value, 10);
+      return Math.max(5, Number.isFinite(parsed) ? parsed : fallback);
     }
 
     async function requestWakeLock() {
       try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
         }
-      } catch (err) {
-        console.warn('Wake Lock non dispo:', err);
+      } catch (error) {
+        console.warn("Wake Lock non disponible :", error);
       }
     }
 
-    function releaseWakeLock() {
-      if (wakeLock) {
-        wakeLock.release().then(() => { wakeLock = null; });
+    async function releaseWakeLock() {
+      if (!wakeLock) {
+        return;
+      }
+
+      try {
+        await wakeLock.release();
+      } catch (error) {
+        console.warn("Erreur lors de la libération du Wake Lock :", error);
+      } finally {
+        wakeLock = null;
       }
     }
+
+    document.addEventListener("visibilitychange", async () => {
+      if (
+        document.visibilityState === "visible" &&
+        timerInterval &&
+        !wakeLock
+      ) {
+        await requestWakeLock();
+      }
+    });
 
     function formatTime(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      const safeSeconds = Math.max(0, Math.trunc(seconds));
+      const minutes = Math.floor(safeSeconds / 60);
+      const remainingSeconds = safeSeconds % 60;
+
+      return (
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(remainingSeconds).padStart(2, "0")
+      );
     }
 
     function updateUI() {
       timerDisplay.textContent = formatTime(timeLeft);
-      totalTimeDisplay.textContent = `Temps total : ${formatTime(totalTimeElapsed)}`;
-      
-      if (currentPhase === 'WARMUP') {
-        phaseDisplay.textContent = 'Échauffement';
-        phaseDisplay.className = 'phase-indicator phase-warmup';
-      } else if (currentPhase === 'RUN') {
-        phaseDisplay.textContent = 'Course';
-        phaseDisplay.className = 'phase-indicator phase-run';
+      totalTimeDisplay.textContent =
+        `Temps total : ${formatTime(totalTimeElapsed)}`;
+
+      if (currentPhase === "WARMUP") {
+        phaseDisplay.textContent = "Échauffement";
+        phaseDisplay.className = "phase-indicator phase-warmup";
+      } else if (currentPhase === "RUN") {
+        phaseDisplay.textContent = "Course";
+        phaseDisplay.className = "phase-indicator phase-run";
       } else {
-        phaseDisplay.textContent = 'Marche';
-        phaseDisplay.className = 'phase-indicator phase-walk';
+        phaseDisplay.textContent = "Marche";
+        phaseDisplay.className = "phase-indicator phase-walk";
       }
     }
 
-    function tick() {
-      totalTimeElapsed++;
-      
-      let nextTime = timeLeft - 1;
+    function shouldAnnounceRemaining(nextTime) {
+      if (nextTime <= 5) {
+        return false;
+      }
 
-      // Décompte Web Audio API
+      if (currentPhase === "WARMUP") {
+        return nextTime % 60 === 0;
+      }
+
+      if (currentPhase === "WALK") {
+        return nextTime % 30 === 0;
+      }
+
+      return nextTime % 15 === 0;
+    }
+
+    function advanceToNextPhase() {
+      countdownTriggered = false;
+
+      if (currentPhase === "WARMUP" || currentPhase === "WALK") {
+        currentPhase = "RUN";
+        timeLeft = durationRun;
+      } else {
+        currentPhase = "WALK";
+        timeLeft = durationWalk;
+      }
+
+      announcePhase(currentPhase, timeLeft, true);
+      updateUI();
+    }
+
+    function tick() {
+      totalTimeElapsed += 1;
+
+      const nextTime = timeLeft - 1;
+
       if (nextTime === 5 && !countdownTriggered) {
-        playSound(decompteBuffer);
+        playSystemSound("countdown");
         countdownTriggered = true;
       }
 
-      if (nextTime > 5) {
-        if (currentPhase === 'WARMUP' && nextTime % 60 === 0) {
-          speak(formatTimeRemainingSpeech(nextTime));
-        } else if (currentPhase === 'WALK' && nextTime % 30 === 0) {
-          speak(formatTimeRemainingSpeech(nextTime));
-        } else if (currentPhase === 'RUN' && nextTime % 15 === 0) {
-          speak(formatTimeRemainingSpeech(nextTime));
-        }
+      if (shouldAnnounceRemaining(nextTime)) {
+        announceRemainingTime(nextTime);
       }
 
       if (nextTime <= 0) {
-        playSound(clocheBuffer);
-        countdownTriggered = false;
-
-        if (currentPhase === 'WARMUP' || currentPhase === 'WALK') {
-          currentPhase = 'RUN';
-          timeLeft = durationRun;
-          setTimeout(() => speak("Course " + formatDurationSpeech(durationRun)), 1000);
-        } else if (currentPhase === 'RUN') {
-          currentPhase = 'WALK';
-          timeLeft = durationWalk;
-          setTimeout(() => speak("Marche " + formatDurationSpeech(durationWalk)), 1000);
-        }
-        
-        updateUI();
+        advanceToNextPhase();
         return;
       }
 
-      timeLeft--;
+      timeLeft = nextTime;
       updateUI();
     }
 
     async function startTimer() {
-      // On initialise le contexte audio (doit être fait après un clic de l'utilisateur)
-      await initAudio();
-
-      if ('speechSynthesis' in window) {
-         window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+      if (timerInterval) {
+        return;
       }
 
-      durationWarmup = Math.max(5, parseInt(inputWarmup.value) || 300);
-      durationRun = Math.max(5, parseInt(inputRun.value) || 60);
-      durationWalk = Math.max(5, parseInt(inputWalk.value) || 60);
+      btnStart.disabled = true;
+      btnStart.textContent = "Chargement…";
+      clearStatus();
 
-      localStorage.setItem('durationWarmup', durationWarmup);
-      localStorage.setItem('durationRun', durationRun);
-      localStorage.setItem('durationWalk', durationWalk);
+      try {
+        await initAudio();
+      } catch (error) {
+        console.error(error);
+        showStatus(
+          "L'audio n'a pas pu être initialisé. Recharge la page et réessaie."
+        );
+        btnStart.disabled = false;
+        btnStart.textContent = "Démarrer";
+        return;
+      }
 
-      settingsContainer.style.display = 'none';
-      btnStart.style.display = 'none';
-      btnReset.style.display = 'inline-block';
+      durationWarmup = readDuration(inputWarmup, 300);
+      durationRun = readDuration(inputRun, 60);
+      durationWalk = readDuration(inputWalk, 60);
 
-      currentPhase = 'WARMUP';
+      inputWarmup.value = durationWarmup;
+      inputRun.value = durationRun;
+      inputWalk.value = durationWalk;
+
+      localStorage.setItem("durationWarmup", String(durationWarmup));
+      localStorage.setItem("durationRun", String(durationRun));
+      localStorage.setItem("durationWalk", String(durationWalk));
+
+      settingsContainer.style.display = "none";
+      btnStart.style.display = "none";
+      btnReset.style.display = "inline-block";
+
+      currentPhase = "WARMUP";
       timeLeft = durationWarmup;
       totalTimeElapsed = 0;
       countdownTriggered = false;
 
       updateUI();
-      
-      playSound(clocheBuffer);
-      setTimeout(() => speak("Échauffement " + formatDurationSpeech(durationWarmup)), 1000);
+
+      announcePhase("WARMUP", durationWarmup, true);
 
       await requestWakeLock();
-      timerInterval = setInterval(tick, 1000);
+
+      timerInterval = window.setInterval(tick, 1000);
+
+      btnStart.disabled = false;
+      btnStart.textContent = "Démarrer";
     }
 
-    function resetTimer() {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      releaseWakeLock();
-
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+    async function resetTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
       }
 
-      currentPhase = 'WARMUP';
+      stopAllAudio();
+      await releaseWakeLock();
+
+      currentPhase = "WARMUP";
       timeLeft = durationWarmup;
       totalTimeElapsed = 0;
       countdownTriggered = false;
 
-      settingsContainer.style.display = 'flex';
-      btnStart.style.display = 'inline-block';
-      btnReset.style.display = 'none';
+      settingsContainer.style.display = "flex";
+      btnStart.style.display = "inline-block";
+      btnReset.style.display = "none";
 
       updateUI();
     }
 
-    inputWarmup.addEventListener('change', () => {
-      durationWarmup = Math.max(5, parseInt(inputWarmup.value) || 300);
-      if (!timerInterval && currentPhase === 'WARMUP') {
+    inputWarmup.addEventListener("change", () => {
+      durationWarmup = readDuration(inputWarmup, 300);
+      inputWarmup.value = durationWarmup;
+
+      if (!timerInterval && currentPhase === "WARMUP") {
         timeLeft = durationWarmup;
         updateUI();
       }
     });
 
-    btnStart.addEventListener('click', startTimer);
-    btnReset.addEventListener('click', resetTimer);
+    inputRun.addEventListener("change", () => {
+      durationRun = readDuration(inputRun, 60);
+      inputRun.value = durationRun;
+    });
+
+    inputWalk.addEventListener("change", () => {
+      durationWalk = readDuration(inputWalk, 60);
+      inputWalk.value = durationWalk;
+    });
+
+    btnStart.addEventListener("click", startTimer);
+    btnReset.addEventListener("click", resetTimer);
 
     updateUI();
   </script>
