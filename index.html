@@ -464,7 +464,7 @@
       return speechBuffers.get(item.name) || null;
     }
 
-    function scheduleAudioSequence(items, defaultGap = 0.055) {
+    function scheduleAudioSequence(items, defaultGap = 0.015) {
       if (!audioCtx || audioCtx.state !== "running") {
         return;
       }
