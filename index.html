@@ -464,7 +464,7 @@
       return speechBuffers.get(item.name) || null;
     }
 
-    function scheduleAudioSequence(items, defaultGap = 0.015) {
+    function scheduleAudioSequence(items, defaultGap = 0.055) {
       if (!audioCtx || audioCtx.state !== "running") {
         return;
       }
@@ -803,9 +803,9 @@
         return nextTime % 60 === 0;
       }
 
-      // Marche : annonce chaque tranche de 30 secondes.
+      // Marche : même logique que l'échauffement, annonce chaque minute.
       if (currentPhase === "WALK") {
-        return nextTime % 30 === 0;
+        return nextTime % 60 === 0;
       }
 
       // Course : annonce chaque tranche de 15 secondes.
@@ -915,7 +915,8 @@
 
       currentPhase = "WARMUP";
       timeLeft = durationWarmup;
-      totalTimeElapsed = 0;
+      // On conserve totalTimeElapsed afin de garder le dernier temps total affiché.
+      // Il sera remis à zéro uniquement au prochain appui sur « Démarrer ».
       countdownTriggered = false;
 
       settingsContainer.style.display = "flex";
