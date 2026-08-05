@@ -29,6 +29,11 @@ label{display:block;color:var(--muted);font-weight:750;margin:11px 0 6px}.row{di
 .rating{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.rating button{margin:0;padding:11px;background:#334155;color:white}.rating button.selected{background:var(--green);color:#052e16}
 .summary{display:flex;justify-content:space-between;border-bottom:1px solid #263244;padding:8px 0}
 details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:21px}li{margin:.45rem 0}
+.chartWrap{margin-top:14px;background:#0b1220;border:1px solid #263244;border-radius:14px;padding:12px;overflow:hidden}
+.chartWrap svg{display:block;width:100%;height:auto}.chartEmpty{padding:22px 8px;text-align:center;color:#94a3b8}
+.chartLabel{font-size:11px;fill:#94a3b8}.chartValue{font-size:11px;fill:#f8fafc;font-weight:700}
+.chartLine{fill:none;stroke:#22c55e;stroke-width:3}.chartDot{fill:#22c55e}.chartGrid{stroke:#334155;stroke-width:1}
+.controlRow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 </style>
 </head>
 <body>
@@ -64,7 +69,7 @@ details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:2
 <div id="cardioActive" class="hidden">
 <div class="timerGrid"><div class="timerBox"><div class="label">Temps total</div><div id="cardioTotal" class="time gold">00:00</div></div><div class="timerBox"><div class="label">Temps restant</div><div id="cardioRemaining" class="time blue">00:00</div></div></div>
 <div id="cardioPhase" class="phase warm">Échauffement</div>
-<button id="stopCardio" class="danger">Terminer maintenant</button>
+<button id="earlyCardio" class="secondary">Terminé plus tôt</button><button id="stopCardio" class="danger">Terminer maintenant</button>
 </div>
 <div id="cardioDone" class="hidden"><div class="exercise" style="text-align:center">Cardio terminé ✓</div><div id="cardioStats"></div><button id="redoCardio" class="secondary">Refaire le cardio</button></div>
 </section>
@@ -72,12 +77,23 @@ details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:2
 <section class="card">
 <h2>Comment ça s’est passé?</h2>
 <div class="rating" id="difficulty"><button data-v="1">Facile</button><button data-v="2">Correct</button><button data-v="3">Difficile</button></div>
-<label for="note">Note de la journée</label><textarea id="note" placeholder="Ex.: jambes plus sollicitées, reflux pendant la course, bonne énergie…"></textarea>
+<label for="weight">Poids facultatif (lb)</label><input id="weight" type="number" inputmode="decimal" min="50" max="500" step="0.1" placeholder="Ex. 190"><label for="note">Note de la journée</label><textarea id="note" placeholder="Ex.: jambes plus sollicitées, reflux pendant la course, bonne énergie…"></textarea>
 <button id="saveNote" class="secondary">Sauvegarder la note</button>
 </section>
 </main>
 
 <main id="historyView" class="hidden">
+<section class="card">
+<h2>Progression par exercice</h2>
+<label for="exerciseChartSelect">Exercice</label>
+<select id="exerciseChartSelect">
+<option value="p">Pushups</option><option value="s">Squats</option><option value="u">Superman</option>
+<option value="l">Fentes arrière</option><option value="d">Dips triceps</option>
+<option value="b">Ponts fessiers</option><option value="k">Planche</option>
+</select>
+<div id="exerciseChart" class="chartWrap"></div>
+</section>
+<section class="card"><h2>Progression du poids</h2><div id="weightChart" class="chartWrap"></div></section>
 <section class="card"><h2>Historique</h2><div id="historyList"></div></section>
 <section class="card"><details><summary>Technique des exercices</summary><ul>
 <li><strong>Pushups :</strong> corps droit et répétitions propres.</li><li><strong>Squats :</strong> hanches vers l’arrière, talons au sol.</li><li><strong>Superman :</strong> mouvement lent, sans forcer le cou.</li><li><strong>Fentes arrière :</strong> stabilité avant profondeur.</li><li><strong>Dips :</strong> chaises très stables, amplitude modeste.</li><li><strong>Ponts fessiers :</strong> serre les fessiers en haut.</li><li><strong>Planche :</strong> arrête si le bas du dos s’affaisse.</li>
@@ -87,13 +103,13 @@ details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:2
 <main id="transferView" class="hidden">
 <section class="card"><h2>Importer un programme de 7 jours</h2><p class="muted">Colle la chaîne que je te donnerai. L’app montre un aperçu avant de remplacer seulement les journées futures concernées.</p><textarea id="importText" placeholder="GP1.…"></textarea><button id="previewImport" class="primary">Lire le programme</button><div id="importPreview"></div></section>
 <section class="card"><h2>Exporter mon suivi</h2><p class="muted">Tu peux exporter n’importe quand. La chaîne contient le programme actif, les séances, les chronos, la difficulté et tes notes.</p><button id="exportBtn" class="primary">Créer la chaîne d’export</button><textarea id="exportText" readonly></textarea><button id="copyExport" class="secondary">Copier</button></section>
-<section class="card"><h2>Réglages</h2><button id="testVoice" class="secondary">Tester la voix</button><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
+<section class="card"><h2>Réglages</h2><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
 </main>
 </div>
 
 <script>
 (()=>{
-const KEY="gregoire_complete_training_v7";
+const KEY="gregoire_complete_training_v5";
 const $=id=>document.getElementById(id);
 let wakeLock=null, tick=null, cardioTick=null, audioCtx=null;
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
@@ -120,7 +136,7 @@ function render(){
  const {k,plan,data}=getDay(); let d=new Date(k+"T12:00:00");
  $("dateTitle").textContent=d.toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
  $("dayLabel").textContent=plan?.label||"Aucun programme chargé pour cette date";$("programBadge").textContent=state.program.start?`Bloc du ${state.program.start}`:"Programme";
- renderStrength(plan,data);renderCardio(plan,data);renderNotes(data);renderHistory();
+ renderStrength(plan,data);renderCardio(plan,data);renderNotes(data);renderHistory();renderCharts();
 }
 function renderStrength(plan,data){
  ["strengthNone","strengthReady","strengthActive","strengthDone"].forEach(x=>$(x).classList.add("hidden"));
@@ -145,7 +161,7 @@ function startStrengthTick(){clearInterval(tick);tick=setInterval(updateStrength
 function updateStrengthTimers(){let s=getDay().data.strengthSession;if(!s)return;$("strengthTotal").textContent=fmt((Date.now()-s.start)/1000);$("strengthPhase").textContent=fmt((Date.now()-s.phaseStart)/1000)}
 function strengthAction(){
  let {k,plan,data}=getDay(),s=data.strengthSession,q=seq(plan),now=Date.now();if(!s)return;
- if(s.phase==="exercise"){s.ex[s.i]=Math.floor((now-s.phaseStart)/1000);if(s.i===q.length-1){state.days[k]={...data,strengthSession:null,strengthDone:true,strengthResult:{total:Math.floor((now-s.start)/1000),ex:s.ex,rest:s.rest}};save();render();return}s.phase="rest";s.phaseStart=now}
+ if(s.phase==="exercise"){s.ex[s.i]=Math.floor((now-s.phaseStart)/1000);if(s.i===q.length-1){state.days[k]={...data,strengthSession:null,strengthDone:true,strengthResult:{total:Math.floor((now-s.start)/1000),ex:s.ex,rest:s.rest,exercises:q.map(x=>({id:x.id,n:x.n,c:x.c}))}};save();render();return}s.phase="rest";s.phaseStart=now}
  else{s.rest[s.i]=Math.floor((now-s.phaseStart)/1000);s.i++;s.phase="exercise";s.phaseStart=now}
  state.days[k]={...data,strengthSession:s};save();renderStrengthActive(q,s)
 }
@@ -157,122 +173,22 @@ function renderCardio(plan,data){
  ["cardioNone","cardioReady","cardioActive","cardioDone"].forEach(x=>$(x).classList.add("hidden"));
  if(!plan?.cardio){$("cardioNone").classList.remove("hidden");return}
  if(data.cardioSession){$("cardioActive").classList.remove("hidden");renderCardioActive(data.cardioSession);startCardioTick();return}
- if(data.cardioDone){$("cardioDone").classList.remove("hidden");let r=data.cardioResult||{};$("cardioStats").innerHTML=`<div class=summary><span>Temps total</span><strong>${fmt(r.total||0)}</strong></div><div class=summary><span>Course</span><strong>${fmt(r.run||0)}</strong></div><div class=summary><span>Marche</span><strong>${fmt(r.walk||0)}</strong></div>`;return}
+ if(data.cardioDone){$("cardioDone").classList.remove("hidden");let r=data.cardioResult||{},status=r.early?"Terminée plus tôt":"Complétée";$("cardioStats").innerHTML=`<div class=summary><span>Statut</span><strong>${status}</strong></div><div class=summary><span>Temps total</span><strong>${fmt(r.total||0)}</strong></div><div class=summary><span>Course</span><strong>${fmt(r.run||0)}</strong></div><div class=summary><span>Marche</span><strong>${fmt(r.walk||0)}</strong></div>${r.cyclesPlanned?`<div class=summary><span>Cycles</span><strong>${r.cyclesCompleted||0} sur ${r.cyclesPlanned}</strong></div>`:""}`;return}
  $("cardioReady").classList.remove("hidden");$("cardioPrescription").innerHTML=cardioText(plan.cardio)
 }
 async function requestWake(){try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch{}}
 function releaseWake(){try{wakeLock?.release()}catch{}wakeLock=null}
 function beep(freq=700,d=.12){try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.16,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d);o.start();o.stop(audioCtx.currentTime+d)}catch{}}
-const SPEECH_GAP=0.015;
-let speechQueuePromise=Promise.resolve();
-let activeSpeechAudio=null;
-
-const speechFileOverrides={
-  "échauffement":"echauffement",
-  "entraînement":"entrainement",
-  "terminé":"terminé",
-  "série":"série",
-  "l'exercice":"lexercice",
-  "l’exercice":"lexercice",
-  "60":"soixante"
-};
-
-function normalizeSpeechToken(token){
-  return String(token)
-    .toLowerCase()
-    .trim()
-    .replace(/[.,!?;:()]/g,"");
-}
-
-function tokenToSpeechFile(token){
-  const normalized=normalizeSpeechToken(token);
-  const stem=speechFileOverrides[normalized] || normalized;
-  return `speech/${encodeURIComponent(stem)}.mp3`;
-}
-
-function playSpeechFile(token){
-  return new Promise(resolve=>{
-    const audio=new Audio(tokenToSpeechFile(token));
-    activeSpeechAudio=audio;
-    let finished=false;
-    const done=()=>{
-      if(finished)return;
-      finished=true;
-      activeSpeechAudio=null;
-      setTimeout(resolve,SPEECH_GAP*1000);
-    };
-    audio.preload="auto";
-    audio.onended=done;
-    audio.onerror=()=>{
-      console.warn("Fichier vocal manquant :",tokenToSpeechFile(token));
-      done();
-    };
-    const result=audio.play();
-    if(result?.catch)result.catch(done);
-  });
-}
-
-function cancelSpeech(){
-  speechQueuePromise=Promise.resolve();
-  if(activeSpeechAudio){
-    try{activeSpeechAudio.pause();activeSpeechAudio.currentTime=0}catch{}
-    activeSpeechAudio=null;
-  }
-}
-
-function speakWords(words){
-  const tokens=(Array.isArray(words)?words:String(words).split(/\s+/)).filter(Boolean);
-  cancelSpeech();
-  speechQueuePromise=tokens.reduce(
-    (promise,token)=>promise.then(()=>playSpeechFile(token)),
-    Promise.resolve()
-  );
-  return speechQueuePromise;
-}
-
-function numberWords(n){
-  n=Number(n);
-  if(n===60)return["soixante"];
-  if(Number.isInteger(n)&&n>=1&&n<=30)return[String(n)];
-  if([40,45,50,70,80,90,100].includes(n))return[String(n)];
-  // Safe fallback: try the numeric filename if a future file is added.
-  return[String(n)];
-}
-
-function durationWords(seconds){
-  seconds=Number(seconds);
-  if(seconds===60)return["une","minute"];
-  if(seconds%60===0){
-    const minutes=seconds/60;
-    return[...(minutes===1?["une"]:numberWords(minutes)),minutes===1?"minute":"minutes"];
-  }
-  return[...numberWords(seconds),seconds===1?"seconde":"secondes"];
-}
-
-function announceWarmup(seconds){
-  return speakWords(["echauffement",...durationWords(seconds)]);
-}
-function announceRun(seconds,cycle,totalCycles){
-  return speakWords(["courir",...durationWords(seconds),"cycle",...numberWords(cycle),"de",...numberWords(totalCycles)]);
-}
-function announceWalk(seconds){
-  return speakWords(["marcher",...durationWords(seconds)]);
-}
-function announceCooldown(seconds){
-  return speakWords(["retour","au","calme",...durationWords(seconds)]);
-}
-function announceFinished(){
-  return speakWords(["entrainement","terminé","bravo"]);
-}
+function speak(t){try{let u=new SpeechSynthesisUtterance(t);u.lang="fr-CA";speechSynthesis.cancel();speechSynthesis.speak(u)}catch{}}
 async function startCardio(){
  let {k,plan,data}=getDay(),c={...plan.cardio},now=Date.now();
  if(c.r>0&&!c.n)c.n=Math.max(1,Math.floor((c.total||0)/(c.r+c.m)));
  let phase=c.w>0?"warm":(c.r>0?"run":"walk"),duration=c.w||c.total;
  state.days[k]={...data,cardioSession:{start:now,phase,phaseStart:now,remaining:duration,run:0,walk:0,config:c,last:now,cycle:c.r>0?(phase==="run"?1:0):0},cardioDone:false};
  save();beep();
- if(phase==="warm")announceWarmup(c.w);
- else if(phase==="run")announceRun(c.r,1,c.n);
- else announceWalk(c.total);
+ if(phase==="warm")speak(`Échauffement ${Math.round(c.w/60)} minutes`);
+ else if(phase==="run")speak(`Course ${c.r} secondes, cycle 1 de ${c.n}`);
+ else speak("Début");
  await requestWake();render()
 }
 function startCardioTick(){clearInterval(cardioTick);cardioTick=setInterval(cardioStep,1000)}
@@ -285,37 +201,65 @@ function cardioStep(){
   if(s.phase==="warm"){
     if(c.r>0){
       s.phase="run";s.cycle=1;s.remaining=c.r;s.phaseStart=now;
-      beep(900);announceRun(c.r,s.cycle,c.n);
+      beep(900);speak(`Course ${c.r} secondes, cycle ${s.cycle} de ${c.n}`);
     }else{
-      s.phase="walk";s.remaining=c.total;s.phaseStart=now;beep(600);announceWalk(c.total);
+      s.phase="walk";s.remaining=c.total;s.phaseStart=now;beep(600);speak("Marche");
     }
   }else if(s.phase==="run"){
     s.phase="walk";s.remaining=c.m;s.phaseStart=now;
-    beep(600);announceWalk(c.m);
+    beep(600);speak(`Marche ${c.m} secondes`);
   }else if(s.phase==="walk"&&c.r>0){
     if(s.cycle<c.n){
       s.cycle++;s.phase="run";s.remaining=c.r;s.phaseStart=now;
-      beep(900);announceRun(c.r,s.cycle,c.n);
+      beep(900);speak(`Course ${c.r} secondes, cycle ${s.cycle} de ${c.n}`);
     }else if(c.c>0){
       s.phase="cool";s.remaining=c.c;s.phaseStart=now;
-      beep(500);announceCooldown(c.c);
+      beep(500);speak(`Retour au calme ${Math.round(c.c/60)} minutes`);
     }else{finishCardio();return}
   }else if(s.phase==="walk"&&c.r===0){
     if(c.c>0){
       s.phase="cool";s.remaining=c.c;s.phaseStart=now;
-      beep(500);announceCooldown(c.c);
+      beep(500);speak(`Retour au calme ${Math.round(c.c/60)} minutes`);
     }else{finishCardio();return}
   }else if(s.phase==="cool"){finishCardio();return}
  }
  state.days[k]={...data,cardioSession:s};save();renderCardioActive(s)
 }
 function renderCardioActive(s){$("cardioTotal").textContent=fmt((Date.now()-s.start)/1000);$("cardioRemaining").textContent=fmt(s.remaining);let t=s.phase==="warm"?"Échauffement":s.phase==="run"?`Course · cycle ${s.cycle} de ${s.config.n}`:s.phase==="walk"&&s.config.r>0?`Marche · après cycle ${s.cycle} de ${s.config.n}`:s.phase==="walk"?"Marche":"Retour au calme";$("cardioPhase").textContent=t;$("cardioPhase").className=`phase ${s.phase==="run"?"run":s.phase==="walk"||s.phase==="cool"?"walk":"warm"}`}
-function finishCardio(){clearInterval(cardioTick);releaseWake();let {k,data}=getDay(),s=data.cardioSession;if(!s)return;let total=Math.floor((Date.now()-s.start)/1000);state.days[k]={...data,cardioSession:null,cardioDone:true,cardioResult:{total,run:s.run,walk:s.walk}};save();beep(1000,.25);announceFinished();render()}
+function finishCardio(early=false){clearInterval(cardioTick);releaseWake();let {k,data}=getDay(),s=data.cardioSession;if(!s)return;let total=Math.floor((Date.now()-s.start)/1000),planned=s.config.r>0?(s.config.n||0):0,completed=s.config.r>0?(s.cycle||0):0;state.days[k]={...data,cardioSession:null,cardioDone:true,cardioResult:{total,run:s.run,walk:s.walk,early,cyclesCompleted:completed,cyclesPlanned:planned,endedPhase:s.phase}};save();beep(1000,.25);speak(early?"Entraînement terminé plus tôt":"Entraînement terminé");render()}
 function redoCardio(){let {k,data}=getDay();state.days[k]={...data,cardioDone:false,cardioResult:null};save();render()}
 
-function renderNotes(data){$("note").value=data.note||"";document.querySelectorAll("#difficulty button").forEach(b=>b.classList.toggle("selected",Number(b.dataset.v)===data.difficulty))}
-function saveNote(){let {k,data}=getDay();state.days[k]={...data,note:$("note").value.trim(),difficulty:Number(document.querySelector("#difficulty .selected")?.dataset.v||0)};save();alert("Note sauvegardée.")}
-function renderHistory(){let e=Object.entries(state.days).filter(([,v])=>v.strengthDone||v.cardioDone||v.note).sort((a,b)=>b[0].localeCompare(a[0]));$("historyList").innerHTML=e.length?e.map(([d,v])=>{let a=[];if(v.strengthDone)a.push("Musculation");if(v.cardioDone)a.push("Cardio");if(v.difficulty)a.push(["","Facile","Correct","Difficile"][v.difficulty]);return `<div class=history><strong>${new Date(d+"T12:00:00").toLocaleDateString("fr-CA",{day:"numeric",month:"short"})}</strong><span class=muted>${a.join(" · ")}</span></div>${v.note?`<div class="small muted" style="padding:0 0 9px">${v.note}</div>`:""}`}).join(""):"<div class=muted>Aucune donnée pour le moment.</div>"}
+function renderNotes(data){$("note").value=data.note||"";$("weight").value=data.weight||"";document.querySelectorAll("#difficulty button").forEach(b=>b.classList.toggle("selected",Number(b.dataset.v)===data.difficulty))}
+function saveNote(){let {k,data}=getDay(),w=parseFloat($("weight").value);state.days[k]={...data,note:$("note").value.trim(),difficulty:Number(document.querySelector("#difficulty .selected")?.dataset.v||0),weight:Number.isFinite(w)?w:null};save();renderHistory();renderCharts();alert("Note sauvegardée.")}
+function renderHistory(){let e=Object.entries(state.days).filter(([,v])=>v.strengthDone||v.cardioDone||v.note||v.weight).sort((a,b)=>b[0].localeCompare(a[0]));$("historyList").innerHTML=e.length?e.map(([d,v])=>{let a=[];if(v.strengthDone)a.push("Musculation");if(v.cardioDone)a.push(v.cardioResult?.early?"Cardio écourté":"Cardio");if(v.difficulty)a.push(["","Facile","Correct","Difficile"][v.difficulty]);if(v.weight)a.push(`${v.weight} lb`);return `<div class=history><strong>${new Date(d+"T12:00:00").toLocaleDateString("fr-CA",{day:"numeric",month:"short"})}</strong><span class=muted>${a.join(" · ")}</span></div>${v.note?`<div class="small muted" style="padding:0 0 9px">${v.note}</div>`:""}`}).join(""):"<div class=muted>Aucune donnée pour le moment.</div>"}
+
+function lineChart(points,unit){
+ if(points.length<2)return `<div class=chartEmpty>${points.length?"Une deuxième donnée fera apparaître le graphique.":"Aucune donnée enregistrée."}</div>`;
+ const W=640,H=260,pad={l:48,r:18,t:22,b:42},vals=points.map(p=>p.v),min=Math.min(...vals),max=Math.max(...vals),span=Math.max(1,max-min);
+ const x=i=>pad.l+i*(W-pad.l-pad.r)/(points.length-1),y=v=>pad.t+(max-v)*(H-pad.t-pad.b)/span;
+ const path=points.map((p,i)=>`${i?"L":"M"} ${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(" ");
+ let grid=[0,.25,.5,.75,1].map(f=>{let yy=pad.t+f*(H-pad.t-pad.b),val=(max-f*span);return `<line class=chartGrid x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}"/><text class=chartLabel x="4" y="${yy+4}">${val.toFixed(unit==="lb"?1:0)}</text>`}).join("");
+ let dots=points.map((p,i)=>`<circle class=chartDot cx="${x(i)}" cy="${y(p.v)}" r="5"/><text class=chartValue x="${x(i)}" y="${y(p.v)-10}" text-anchor="middle">${p.v}${unit==="s"?" s":unit==="lb"?"":""}</text><text class=chartLabel x="${x(i)}" y="${H-14}" text-anchor="middle">${p.label}</text>`).join("");
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graphique de progression">${grid}<path class=chartLine d="${path}"/>${dots}</svg>`;
+}
+function exercisePoints(id){
+ let pts=[];
+ for(const [date,v] of Object.entries(state.days).sort((a,b)=>a[0].localeCompare(b[0]))){
+  let ex=v.strengthResult?.exercises;if(!ex)continue;
+  let matches=ex.filter(x=>x.id===id);if(!matches.length)continue;
+  let value=id==="k"?matches.reduce((a,x)=>a+x.n,0):matches.reduce((a,x)=>a+x.n,0);
+  pts.push({label:new Date(date+"T12:00:00").toLocaleDateString("fr-CA",{day:"numeric",month:"short"}),v:value});
+ }
+ return pts.slice(-12);
+}
+function weightPoints(){
+ return Object.entries(state.days).filter(([,v])=>Number.isFinite(v.weight)&&v.weight>0).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12).map(([d,v])=>({label:new Date(d+"T12:00:00").toLocaleDateString("fr-CA",{day:"numeric",month:"short"}),v:v.weight}));
+}
+function renderCharts(){
+ let id=$("exerciseChartSelect")?.value||"p";
+ if($("exerciseChart"))$("exerciseChart").innerHTML=lineChart(exercisePoints(id),id==="k"?"s":"rép.");
+ if($("weightChart"))$("weightChart").innerHTML=lineChart(weightPoints(),"lb");
+}
 
 function b64e(obj){let s=JSON.stringify(obj),bytes=new TextEncoder().encode(s),bin="";bytes.forEach(x=>bin+=String.fromCharCode(x));return btoa(bin).replaceAll("+","-").replaceAll("/","_").replaceAll("=","")}
 function b64d(s){s=s.replaceAll("-","+").replaceAll("_","/");while(s.length%4)s+="=";let bin=atob(s),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}
@@ -328,9 +272,9 @@ function restore(){if(!state.previousProgram)return alert("Aucun programme préc
 
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));["today","history","transfer"].forEach(v=>$(v+"View").classList.toggle("hidden",v!==b.dataset.view));render()});
 $("startStrength").onclick=startStrength;$("strengthAction").onclick=strengthAction;$("cancelStrength").onclick=cancelStrength;$("redoStrength").onclick=redoStrength;
-$("startCardio").onclick=startCardio;$("stopCardio").onclick=finishCardio;$("redoCardio").onclick=redoCardio;
+$("startCardio").onclick=startCardio;$("stopCardio").onclick=()=>finishCardio(false);$("earlyCardio").onclick=()=>{if(confirm("Enregistrer le cardio comme terminé plus tôt?"))finishCardio(true)};$("redoCardio").onclick=redoCardio;
 document.querySelectorAll("#difficulty button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#difficulty button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
-$("saveNote").onclick=saveNote;$("previewImport").onclick=importPreview;$("exportBtn").onclick=exportData;$("copyExport").onclick=async()=>{await navigator.clipboard.writeText($("exportText").value);alert("Chaîne copiée.")};$("testVoice").onclick=()=>announceRun(30,1,20);$("restoreProgram").onclick=restore;
+$("saveNote").onclick=saveNote;$("exerciseChartSelect").onchange=renderCharts;$("previewImport").onclick=importPreview;$("exportBtn").onclick=exportData;$("copyExport").onclick=async()=>{await navigator.clipboard.writeText($("exportText").value);alert("Chaîne copiée.")};$("restoreProgram").onclick=restore;
 $("resetAll").onclick=()=>{if(confirm("Effacer programme, historique et notes?")){localStorage.removeItem(KEY);state=blank();save();render()}};
 render();
 })();
