@@ -103,7 +103,10 @@ details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:2
 <main id="transferView" class="hidden">
 <section class="card"><h2>Importer un programme de 7 jours</h2><p class="muted">Colle une chaîne GP1. Elle peut contenir jusqu’à 7 jours complets de musculation et de cardio. L’app affiche un aperçu avant l’installation.</p><textarea id="importText" placeholder="GP1.…"></textarea><button id="previewImport" class="primary">Lire le programme</button><div id="importPreview"></div></section>
 <section class="card"><h2>Exporter mon suivi</h2><p class="muted">Tu peux exporter n’importe quand. La chaîne GX1 contient le programme actif, les séances, les chronos détaillés, les cycles, la difficulté, le poids et tes notes.</p><button id="exportBtn" class="primary">Créer la chaîne d’export</button><textarea id="exportText" readonly></textarea><button id="copyExport" class="secondary">Copier</button></section>
-<section class="card"><h2>Réglages</h2><div id="formatStatus" class="muted small"></div><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
+<section class="card"><h2>Réglages</h2>
+<div id="formatStatus" class="muted small"></div>
+<div id="audioStatus" class="muted small" style="margin-top:6px">Audio local : sera vérifié au premier démarrage.</div>
+<button id="testAudio" class="secondary">Tester la cloche et la voix</button><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
 </main>
 </div>
 
@@ -112,6 +115,12 @@ details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:2
 const KEY="gregoire_complete_training_v5";
 const $=id=>document.getElementById(id);
 let wakeLock=null, tick=null, cardioTick=null, audioCtx=null;
+let clocheBuffer=undefined;
+const audioPathCache=new Map();
+const audioTokenCache=new Map();
+const audioMissing=new Set();
+const AUDIO_WORD_GAP=0.015;
+const BELL_TO_VOICE_GAP=1.0;
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const fmt=s=>{s=Math.max(0,Math.floor(s));let h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}`};
 const defaultProgram=()=>({
@@ -146,8 +155,15 @@ function renderStrength(plan,data){
  if(data.strengthDone){$("strengthDone").classList.remove("hidden");let r=data.strengthResult||{};$("strengthStats").innerHTML=`<div class=summary><span>Total</span><strong>${fmt(r.total||0)}</strong></div><div class=summary><span>Exercices</span><strong>${fmt((r.ex||[]).reduce((a,b)=>a+b,0))}</strong></div><div class=summary><span>Repos</span><strong>${fmt((r.rest||[]).reduce((a,b)=>a+b,0))}</strong></div>`;return}
  $("strengthReady").classList.remove("hidden");$("strengthSummary").textContent=`${plan.strength.circuits} circuits · ${plan.strength.ex.length} exercices par circuit.`;
 }
-function startStrength(){
- const {k,plan,data}=getDay();let now=Date.now();state.days[k]={...data,strengthSession:{i:0,phase:"exercise",start:now,phaseStart:now,ex:[],rest:[]},strengthDone:false};save();render()
+async function startStrength(){
+ const {k,plan,data}=getDay();
+ const q=seq(plan);
+ await preloadStrength(plan);
+ const now=Date.now();
+ state.days[k]={...data,strengthSession:{i:0,phase:"exercise",start:now,phaseStart:now,ex:[],rest:[]},strengthDone:false};
+ save();
+ render();
+ if(q[0])void playTokens(strengthExerciseTokens(q[0],plan.strength.circuits),{bell:true});
 }
 function renderStrengthActive(q,s){
  let e=q[Math.min(s.i,q.length-1)],rest=s.phase==="rest";
@@ -160,10 +176,33 @@ function renderStrengthActive(q,s){
 function startStrengthTick(){clearInterval(tick);tick=setInterval(updateStrengthTimers,250)}
 function updateStrengthTimers(){let s=getDay().data.strengthSession;if(!s)return;$("strengthTotal").textContent=fmt((Date.now()-s.start)/1000);$("strengthPhase").textContent=fmt((Date.now()-s.phaseStart)/1000)}
 function strengthAction(){
- let {k,plan,data}=getDay(),s=data.strengthSession,q=seq(plan),now=Date.now();if(!s)return;
- if(s.phase==="exercise"){s.ex[s.i]=Math.floor((now-s.phaseStart)/1000);if(s.i===q.length-1){state.days[k]={...data,strengthSession:null,strengthDone:true,strengthResult:{total:Math.floor((now-s.start)/1000),ex:s.ex,rest:s.rest,exercises:q.map(x=>({id:x.id,n:x.n,c:x.c}))}};save();render();return}s.phase="rest";s.phaseStart=now}
- else{s.rest[s.i]=Math.floor((now-s.phaseStart)/1000);s.i++;s.phase="exercise";s.phaseStart=now}
- state.days[k]={...data,strengthSession:s};save();renderStrengthActive(q,s)
+ let {k,plan,data}=getDay(),s=data.strengthSession,q=seq(plan),now=Date.now();
+ if(!s)return;
+ if(s.phase==="exercise"){
+  s.ex[s.i]=Math.floor((now-s.phaseStart)/1000);
+  if(s.i===q.length-1){
+   state.days[k]={...data,strengthSession:null,strengthDone:true,strengthResult:{
+    total:Math.floor((now-s.start)/1000),ex:s.ex,rest:s.rest,
+    exercises:q.map(x=>({id:x.id,n:x.n,c:x.c}))
+   }};
+   save();
+   render();
+   void playTokens(finishTokens(),{bell:true});
+   return;
+  }
+  s.phase="rest";
+  s.phaseStart=now;
+  void playTokens(["repos"],{bell:true});
+ }else{
+  s.rest[s.i]=Math.floor((now-s.phaseStart)/1000);
+  s.i++;
+  s.phase="exercise";
+  s.phaseStart=now;
+  void playTokens(strengthExerciseTokens(q[s.i],plan.strength.circuits),{bell:true});
+ }
+ state.days[k]={...data,strengthSession:s};
+ save();
+ renderStrengthActive(q,s);
 }
 function cancelStrength(){if(!confirm("Annuler cette séance?"))return;let {k,data}=getDay();state.days[k]={...data,strengthSession:null};save();render()}
 function redoStrength(){let {k,data}=getDay();state.days[k]={...data,strengthDone:false,strengthResult:null};save();render()}
@@ -178,55 +217,415 @@ function renderCardio(plan,data){
 }
 async function requestWake(){try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch{}}
 function releaseWake(){try{wakeLock?.release()}catch{}wakeLock=null}
-function beep(freq=700,d=.12){try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.16,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d);o.start();o.stop(audioCtx.currentTime+d)}catch{}}
-function speak(t){try{let u=new SpeechSynthesisUtterance(t);u.lang="fr-CA";speechSynthesis.cancel();speechSynthesis.speak(u)}catch{}}
-async function startCardio(){
- let {k,plan,data}=getDay(),c={...plan.cardio},now=Date.now();
- if(c.r>0&&!c.n)c.n=Math.max(1,Math.floor((c.total||0)/(c.r+c.m)));
- let phase=c.w>0?"warm":(c.r>0?"run":"walk"),duration=c.w||c.total;
- state.days[k]={...data,cardioSession:{start:now,phase,phaseStart:now,remaining:duration,run:0,walk:0,config:c,last:now,cycle:c.r>0?(phase==="run"?1:0):0},cardioDone:false};
- save();beep();
- if(phase==="warm")speak(`Échauffement ${Math.round(c.w/60)} minutes`);
- else if(phase==="run")speak(`Course ${c.r} secondes, cycle 1 de ${c.n}`);
- else speak("Début");
- await requestWake();render()
+
+const WORD_ALIASES={
+ echauffement:["echauffement","échauffement"],
+ course:["course","courir"],
+ marche:["marche","marcher"],
+ retour:["retour"],
+ au:["au"],
+ calme:["calme"],
+ cycle:["cycle"],
+ de:["de"],
+ et:["et"],
+ seconde:["seconde"],
+ secondes:["secondes"],
+ minute:["minute"],
+ minutes:["minutes"],
+ restant:["restant"],
+ restante:["restante"],
+ restantes:["restantes"],
+ repos:["repos"],
+ circuit:["circuit"],
+ bravo:["bravo"],
+ entrainement:["entrainement","entraînement"],
+ termine:["terminé","termine"],
+ pompes:["pompes"],
+ accroupissements:["accroupissements"],
+ extensions:["extensions"],
+ dorsales:["dorsales"],
+ sol:["sol"],
+ fentes:["fentes"],
+ arriere:["arriere","arrière"],
+ par:["par"],
+ jambe:["jambe"],
+ repulsions:["repulsions","répulsions"],
+ entre:["entre"],
+ chaises:["chaises"],
+ ponts:["ponts"],
+ fessiers:["fessiers"],
+ planche:["planche"]
+};
+const NUMBER_WORDS={
+ 0:"zero",1:"un",2:"deux",3:"trois",4:"quatre",5:"cinq",6:"six",7:"sept",8:"huit",9:"neuf",10:"dix",
+ 11:"onze",12:"douze",13:"treize",14:"quatorze",15:"quinze",16:"seize",17:"dix-sept",18:"dix-huit",19:"dix-neuf",
+ 20:"vingt",21:"vingt-et-un",22:"vingt-deux",23:"vingt-trois",24:"vingt-quatre",25:"vingt-cinq",26:"vingt-six",
+ 27:"vingt-sept",28:"vingt-huit",29:"vingt-neuf",30:"trente",35:"trente-cinq",40:"quarante",45:"quarante-cinq",
+ 50:"cinquante",55:"cinquante-cinq",60:"soixante",70:"soixante-dix",75:"soixante-quinze",
+ 80:"quatre-vingts",90:"quatre-vingt-dix",100:"cent"
+};
+const DIRECT_NUMBER_FILES=new Set([
+  1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
+  21,22,23,24,25,26,27,28,29,30,40,45,50,70,80,90,100
+]);
+const STRENGTH_AUDIO={
+ p:["pompes"],
+ s:["accroupissements"],
+ u:["extensions","dorsales","au","sol"],
+ l:["fentes","arriere","par","jambe"],
+ d:["repulsions","entre",2,"chaises"],
+ b:["ponts","fessiers"],
+ k:["planche"]
+};
+
+function filenameVariants(name){
+ const raw=String(name);
+ const nfc=raw.normalize("NFC");
+ const nfd=raw.normalize("NFD");
+ const plain=nfd.replace(/[\u0300-\u036f]/g,"");
+ return [...new Set([
+  raw,nfc,nfd,plain,
+  raw.replaceAll("-","_"),plain.replaceAll("-","_"),
+  raw.replaceAll("-",""),plain.replaceAll("-","")
+ ])];
 }
-function startCardioTick(){clearInterval(cardioTick);cardioTick=setInterval(cardioStep,1000)}
-function cardioStep(){
- let {k,data}=getDay(),s=data.cardioSession;if(!s)return;
- let now=Date.now(),delta=Math.max(1,Math.round((now-s.last)/1000));s.last=now;s.remaining-=delta;
- if(s.phase==="run")s.run+=delta;else s.walk+=delta;
- if(s.remaining<=0){
-  let c=s.config;
-  if(s.phase==="warm"){
-    if(c.r>0){
-      s.phase="run";s.cycle=1;s.remaining=c.r;s.phaseStart=now;
-      beep(900);speak(`Course ${c.r} secondes, cycle ${s.cycle} de ${c.n}`);
-    }else{
-      s.phase="walk";s.remaining=c.total;s.phaseStart=now;beep(600);speak("Marche");
-    }
-  }else if(s.phase==="run"){
-    s.phase="walk";s.remaining=c.m;s.phaseStart=now;
-    beep(600);speak(`Marche ${c.m} secondes`);
-  }else if(s.phase==="walk"&&c.r>0){
-    if(s.cycle<c.n){
-      s.cycle++;s.phase="run";s.remaining=c.r;s.phaseStart=now;
-      beep(900);speak(`Course ${c.r} secondes, cycle ${s.cycle} de ${c.n}`);
-    }else if(c.c>0){
-      s.phase="cool";s.remaining=c.c;s.phaseStart=now;
-      beep(500);speak(`Retour au calme ${Math.round(c.c/60)} minutes`);
-    }else{finishCardio();return}
-  }else if(s.phase==="walk"&&c.r===0){
-    if(c.c>0){
-      s.phase="cool";s.remaining=c.c;s.phaseStart=now;
-      beep(500);speak(`Retour au calme ${Math.round(c.c/60)} minutes`);
-    }else{finishCardio();return}
-  }else if(s.phase==="cool"){finishCardio();return}
+function audioCandidatesForToken(token){
+ let feminine=false;
+ if(typeof token==="string"&&token.startsWith("numf:")){
+  feminine=true;
+  token=Number(token.slice(5));
+ }else if(typeof token==="string"&&token.startsWith("num:")){
+  token=Number(token.slice(4));
  }
- state.days[k]={...data,cardioSession:s};save();renderCardioActive(s)
+ if(typeof token==="number"||Number.isInteger(token)){
+  const n=Number(token),word=NUMBER_WORDS[n],names=[String(n)];
+  if(n===1){
+   if(feminine)names.push("une","un");
+   else names.push("un","une");
+  }else if(word){
+   names.push(word);
+  }
+  return [...new Set(names.flatMap(filenameVariants))].map(x=>`speech/${x}.mp3`);
+ }
+ const aliases=WORD_ALIASES[token]||[String(token)];
+ return [...new Set(aliases.flatMap(filenameVariants))].map(x=>`speech/${x}.mp3`);
 }
-function renderCardioActive(s){$("cardioTotal").textContent=fmt((Date.now()-s.start)/1000);$("cardioRemaining").textContent=fmt(s.remaining);let t=s.phase==="warm"?"Échauffement":s.phase==="run"?`Course · cycle ${s.cycle} de ${s.config.n}`:s.phase==="walk"&&s.config.r>0?`Marche · après cycle ${s.cycle} de ${s.config.n}`:s.phase==="walk"?"Marche":"Retour au calme";$("cardioPhase").textContent=t;$("cardioPhase").className=`phase ${s.phase==="run"?"run":s.phase==="walk"||s.phase==="cool"?"walk":"warm"}`}
-function finishCardio(early=false){clearInterval(cardioTick);releaseWake();let {k,data}=getDay(),s=data.cardioSession;if(!s)return;let total=Math.floor((Date.now()-s.start)/1000),planned=s.config.r>0?(s.config.n||0):0,completed=s.config.r>0?(s.cycle||0):0;state.days[k]={...data,cardioSession:null,cardioDone:true,cardioResult:{total,run:s.run,walk:s.walk,early,cyclesCompleted:completed,cyclesPlanned:planned,endedPhase:s.phase}};save();beep(1000,.25);speak(early?"Entraînement terminé plus tôt":"Entraînement terminé");render()}
+function numericTokenDetails(token){
+ let prefix="",value=token;
+ if(typeof token==="string"&&token.startsWith("numf:")){
+  prefix="numf:";
+  value=Number(token.slice(5));
+ }else if(typeof token==="string"&&token.startsWith("num:")){
+  prefix="num:";
+  value=Number(token.slice(4));
+ }
+ if(typeof value!=="number"||!Number.isInteger(value))return null;
+ return {prefix,value};
+}
+function expandNumberValue(n){
+ if(DIRECT_NUMBER_FILES.has(n)||n<=30)return [n];
+ if(n===60)return ["soixante"];
+ if(n>30&&n<40)return [30,n-30];
+ if(n>40&&n<50)return [40,n-40];
+ if(n>50&&n<60)return [50,n-50];
+ if(n>60&&n<70)return [60,n-60];
+ if(n>70&&n<80)return [60,n-60];
+ if(n>80&&n<90)return [80,n-80];
+ if(n>90&&n<100)return [80,n-80];
+ return [n];
+}
+function expandSpokenToken(token){
+ const details=numericTokenDetails(token);
+ if(!details)return [token];
+ if(details.value===1&&details.prefix)return [token];
+ return expandNumberValue(details.value);
+}
+function expandSpokenTokens(tokens){
+ return tokens.flatMap(expandSpokenToken);
+}
+
+async function loadAudioPath(path){
+ if(audioPathCache.has(path))return audioPathCache.get(path);
+ const promise=(async()=>{
+  try{
+   const response=await fetch(encodeURI(path),{cache:"force-cache"});
+   if(!response.ok)return null;
+   const arrayBuffer=await response.arrayBuffer();
+   return await audioCtx.decodeAudioData(arrayBuffer);
+  }catch(err){
+   console.warn("Audio non chargé :",path,err);
+   return null;
+  }
+ })();
+ audioPathCache.set(path,promise);
+ return promise;
+}
+async function loadFirstAudio(paths){
+ for(const path of paths){
+  const buffer=await loadAudioPath(path);
+  if(buffer)return buffer;
+ }
+ return null;
+}
+function tokenKey(token){return typeof token==="string"?token:String(token)}
+async function getTokenBuffer(token){
+ const key=tokenKey(token);
+ if(audioTokenCache.has(key))return audioTokenCache.get(key);
+ const promise=loadFirstAudio(audioCandidatesForToken(token));
+ audioTokenCache.set(key,promise);
+ const buffer=await promise;
+ if(!buffer)audioMissing.add(key);
+ return buffer;
+}
+function updateAudioStatus(){
+ const el=$("audioStatus");
+ if(!el)return;
+ if(!audioCtx){
+  el.textContent="Audio local : sera vérifié au premier démarrage.";
+  return;
+ }
+ const missing=[...audioMissing];
+ if(clocheBuffer===null){
+  el.textContent="Audio incomplet : cloche.wav est introuvable.";
+ }else if(missing.length){
+  el.textContent=`Audio chargé, mais fichiers manquants : ${missing.slice(0,8).join(", ")}${missing.length>8?"…":""}`;
+ }else{
+  el.textContent="Audio local prêt · règles vocales jogging complètes · espacement : 0,015 s.";
+ }
+}
+async function initAudio(tokens=[]){
+ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+ if(audioCtx.state==="suspended")await audioCtx.resume();
+ if(clocheBuffer===undefined){
+  clocheBuffer=await loadFirstAudio(["cloche.wav","speech/cloche.wav"]);
+ }
+ await Promise.all([...new Set(tokens.map(tokenKey))].map(key=>{
+  const original=tokens.find(t=>tokenKey(t)===key);
+  return getTokenBuffer(original);
+ }));
+ updateAudioStatus();
+}
+function scheduleBuffer(buffer,startAt){
+ if(!audioCtx||!buffer)return startAt;
+ const source=audioCtx.createBufferSource();
+ source.buffer=buffer;
+ source.connect(audioCtx.destination);
+ source.start(startAt);
+ return startAt+buffer.duration;
+}
+async function playTokens(tokens,{bell=true}={}){
+ const spoken=expandSpokenTokens(tokens);
+ await initAudio(spoken);
+ let at=audioCtx.currentTime+0.025;
+ if(bell&&clocheBuffer){
+  at=scheduleBuffer(clocheBuffer,at)+BELL_TO_VOICE_GAP;
+ }
+ for(const token of spoken){
+  const buffer=await getTokenBuffer(token);
+  if(buffer)at=scheduleBuffer(buffer,at)+AUDIO_WORD_GAP;
+ }
+ return at;
+}
+function durationTokens(seconds){
+ const tokens=[],m=Math.floor(seconds/60),s=seconds%60;
+ if(m>0){
+  tokens.push(m===1?"numf:1":m,m===1?"minute":"minutes");
+ }
+ if(m>0&&s>0)tokens.push("et");
+ if(s>0){
+  tokens.push(s,s===1?"seconde":"secondes");
+ }
+ return tokens;
+}
+function remainingTokens(seconds){
+ const plural=seconds!==1;
+ return [...durationTokens(seconds),plural?"restantes":"restante"];
+}
+function phaseThresholds(phase,duration){
+ const values=[];
+ if(phase==="run"){
+  for(let t=15;t<duration;t+=15){
+   if(t>5)values.push(t);
+  }
+ }else{
+  for(let t=60;t<duration;t+=60){
+   if(t>5)values.push(t);
+  }
+  if(duration>15)values.push(15);
+ }
+ return [...new Set(values)].sort((a,b)=>a-b);
+}
+function nextCrossedThreshold(s,previous,remaining){
+ const thresholds=phaseThresholds(s.phase,s.phaseDuration||0)
+  .filter(t=>!s.announcedRemaining.includes(t));
+ const crossed=thresholds.filter(t=>previous>t&&remaining<=t);
+ if(!crossed.length)return null;
+ return Math.min(...crossed);
+}
+function runTokens(c,cycle){
+ return ["course",c.r,c.r===1?"seconde":"secondes","cycle",`num:${cycle}`,"de",`num:${c.n}`];
+}
+function walkTokens(seconds){return ["marche",...durationTokens(seconds)]}
+function warmTokens(seconds){return ["echauffement",...durationTokens(seconds)]}
+function coolTokens(seconds){return ["retour","au","calme",...durationTokens(seconds)]}
+function finishTokens(){return ["bravo","entrainement","termine"]}
+function strengthExerciseTokens(e,totalCircuits){
+ const circuit=["circuit",`num:${e.c}`,"de",`num:${totalCircuits}`];
+ if(e.id==="k")return ["planche",...durationTokens(e.n),...circuit];
+ return [`num:${e.n}`,...STRENGTH_AUDIO[e.id],...circuit];
+}
+async function preloadCardio(c){
+ const tokens=[1,2,3,4,5,...finishTokens(),"restante","restantes"];
+ const addThresholds=(phase,duration)=>{
+  for(const t of phaseThresholds(phase,duration))tokens.push(...remainingTokens(t));
+ };
+ if(c.w>0){
+  tokens.push(...warmTokens(c.w));
+  addThresholds("warm",c.w);
+ }
+ if(c.r>0){
+  tokens.push(...runTokens(c,1),...runTokens(c,c.n),...walkTokens(c.m));
+  addThresholds("run",c.r);
+  addThresholds("walk",c.m);
+ }else{
+  tokens.push(...walkTokens(c.total));
+  addThresholds("walk",c.total);
+ }
+ if(c.c>0){
+  tokens.push(...coolTokens(c.c));
+  addThresholds("cool",c.c);
+ }
+ await initAudio(expandSpokenTokens(tokens));
+}
+async function preloadStrength(plan){
+ const q=seq(plan),tokens=["repos",...finishTokens()];
+ for(const e of q)tokens.push(...strengthExerciseTokens(e,plan.strength.circuits));
+ await initAudio(tokens);
+}
+function beginCardioPhase(s,phase,duration,now,tokens){
+ s.phase=phase;
+ s.phaseStart=now;
+ s.phaseEnd=now+duration*1000;
+ s.phaseDuration=duration;
+ s.remaining=duration;
+ s.previousRemaining=duration;
+ s.lastCountdown=0;
+ s.announcedRemaining=[];
+ void playTokens(tokens,{bell:true});
+}
+async function startCardio(){
+ let {k,plan,data}=getDay(),c={...plan.cardio};
+ if(c.r>0&&!c.n)c.n=Math.max(1,Math.floor((c.total||0)/(c.r+c.m)));
+ await preloadCardio(c);
+ const now=Date.now(),phase=c.w>0?"warm":(c.r>0?"run":"walk"),duration=c.w||(c.r>0?c.r:c.total);
+ const cycle=c.r>0&&phase==="run"?1:0;
+ const s={start:now,phase,phaseStart:now,phaseEnd:now+duration*1000,phaseDuration:duration,remaining:duration,previousRemaining:duration,run:0,walk:0,config:c,last:now,cycle,lastCountdown:0,announcedRemaining:[],lastSavedRemaining:duration};
+ state.days[k]={...data,cardioSession:s,cardioDone:false};
+ save();
+ if(phase==="warm")void playTokens(warmTokens(c.w),{bell:true});
+ else if(phase==="run")void playTokens(runTokens(c,1),{bell:true});
+ else void playTokens(walkTokens(c.total),{bell:true});
+ await requestWake();
+ render();
+}
+function startCardioTick(){clearInterval(cardioTick);cardioTick=setInterval(cardioStep,200)}
+function cardioStep(){
+ let {k,data}=getDay(),s=data.cardioSession;
+ if(!s)return;
+ const now=Date.now();
+ if(!s.phaseEnd)s.phaseEnd=s.phaseStart+(s.remaining||0)*1000;
+ const delta=Math.max(0,(now-(s.last||now))/1000);
+ s.last=now;
+ if(s.phase==="run")s.run+=delta;
+ else s.walk+=delta;
+ const previous=Number.isFinite(s.previousRemaining)?s.previousRemaining:Math.ceil((s.phaseEnd-(s.last||now))/1000);
+ const remaining=Math.max(0,Math.ceil((s.phaseEnd-now)/1000));
+ s.remaining=remaining;
+ if(!Array.isArray(s.announcedRemaining))s.announcedRemaining=[];
+ if(remaining>5){
+  const threshold=nextCrossedThreshold(s,previous,remaining);
+  if(threshold!==null){
+   s.announcedRemaining.push(threshold);
+   void playTokens(remainingTokens(threshold),{bell:false});
+  }
+ }
+ if(remaining>=1&&remaining<=5&&s.lastCountdown!==remaining){
+  s.lastCountdown=remaining;
+  void playTokens([remaining],{bell:false});
+ }
+ s.previousRemaining=remaining;
+ let transitioned=false;
+ if(now>=s.phaseEnd){
+  const c=s.config;
+  if(s.phase==="warm"){
+   if(c.r>0){
+    s.cycle=1;
+    beginCardioPhase(s,"run",c.r,now,runTokens(c,s.cycle));
+   }else{
+    beginCardioPhase(s,"walk",c.total,now,walkTokens(c.total));
+   }
+   transitioned=true;
+  }else if(s.phase==="run"){
+   beginCardioPhase(s,"walk",c.m,now,walkTokens(c.m));
+   transitioned=true;
+  }else if(s.phase==="walk"&&c.r>0){
+   if(s.cycle<c.n){
+    s.cycle++;
+    beginCardioPhase(s,"run",c.r,now,runTokens(c,s.cycle));
+    transitioned=true;
+   }else if(c.c>0){
+    beginCardioPhase(s,"cool",c.c,now,coolTokens(c.c));
+    transitioned=true;
+   }else{
+    finishCardio(false);
+    return;
+   }
+  }else if(s.phase==="walk"&&c.r===0){
+   if(c.c>0){
+    beginCardioPhase(s,"cool",c.c,now,coolTokens(c.c));
+    transitioned=true;
+   }else{
+    finishCardio(false);
+    return;
+   }
+  }else if(s.phase==="cool"){
+   finishCardio(false);
+   return;
+  }
+ }
+ state.days[k]={...data,cardioSession:s};
+ if(transitioned||s.lastSavedRemaining!==remaining){
+  s.lastSavedRemaining=remaining;
+  save();
+ }
+ renderCardioActive(s);
+}
+function renderCardioActive(s){
+ $("cardioTotal").textContent=fmt((Date.now()-s.start)/1000);
+ $("cardioRemaining").textContent=fmt(s.remaining);
+ let t=s.phase==="warm"?"Échauffement":
+  s.phase==="run"?`Course · cycle ${s.cycle} de ${s.config.n}`:
+  s.phase==="walk"&&s.config.r>0?`Marche · après cycle ${s.cycle} de ${s.config.n}`:
+  s.phase==="walk"?"Marche":"Retour au calme";
+ $("cardioPhase").textContent=t;
+ $("cardioPhase").className=`phase ${s.phase==="run"?"run":s.phase==="walk"||s.phase==="cool"?"walk":"warm"}`;
+}
+function finishCardio(early=false){
+ clearInterval(cardioTick);
+ releaseWake();
+ let {k,data}=getDay(),s=data.cardioSession;
+ if(!s)return;
+ const total=Math.floor((Date.now()-s.start)/1000);
+ const planned=s.config.r>0?(s.config.n||0):0;
+ const completed=s.config.r>0?(s.cycle||0):0;
+ state.days[k]={...data,cardioSession:null,cardioDone:true,cardioResult:{
+  total,run:Math.round(s.run),walk:Math.round(s.walk),early,
+  cyclesCompleted:completed,cyclesPlanned:planned,endedPhase:s.phase
+ }};
+ save();
+ void playTokens(finishTokens(),{bell:true});
+ render();
+}
 function redoCardio(){let {k,data}=getDay();state.days[k]={...data,cardioDone:false,cardioResult:null};save();render()}
 
 function renderNotes(data){$("note").value=data.note||"";$("weight").value=data.weight||"";document.querySelectorAll("#difficulty button").forEach(b=>b.classList.toggle("selected",Number(b.dataset.v)===data.difficulty))}
@@ -414,7 +813,7 @@ function exportPayload(){
   .filter(([,v])=>Number.isFinite(v.weight))
   .sort((a,b)=>b[0].localeCompare(a[0]));
  return {
-  appVersion:8,
+  appVersion:10,
   exportedAt:new Date().toISOString(),
   currentDate:todayKey(),
   activeProgram:state.program,
@@ -453,6 +852,9 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelect
 $("startStrength").onclick=startStrength;$("strengthAction").onclick=strengthAction;$("cancelStrength").onclick=cancelStrength;$("redoStrength").onclick=redoStrength;
 $("startCardio").onclick=startCardio;$("stopCardio").onclick=()=>finishCardio(false);$("earlyCardio").onclick=()=>{if(confirm("Enregistrer le cardio comme terminé plus tôt?"))finishCardio(true)};$("redoCardio").onclick=redoCardio;
 document.querySelectorAll("#difficulty button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#difficulty button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
+$("testAudio").onclick=async()=>{
+ await playTokens(["bravo","entrainement","termine"],{bell:true});
+};
 $("saveNote").onclick=saveNote;$("exerciseChartSelect").onchange=renderCharts;$("previewImport").onclick=importPreview;$("exportBtn").onclick=exportData;$("copyExport").onclick=async()=>{await navigator.clipboard.writeText($("exportText").value);alert("Chaîne copiée.")};$("restoreProgram").onclick=restore;
 $("resetAll").onclick=()=>{if(confirm("Effacer programme, historique et notes?")){localStorage.removeItem(KEY);state=blank();save();render()}};
 render();runFormatSelfTest();

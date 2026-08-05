@@ -1,0 +1,36 @@
+LEXIQUE V10 VÉRIFIÉ SUR GITHUB
+
+La version 10 est adaptée à ces noms :
+course.mp3 ou courir.mp3
+marche.mp3 ou marcher.mp3
+terminé.mp3, terminé.mp3 ou termine.mp3
+
+Musculation :
+pompes.mp3
+accroupissements.mp3
+extensions.mp3
+dorsales.mp3
+au.mp3
+sol.mp3
+fentes.mp3
+arriere.mp3
+par.mp3
+jambe.mp3
+repulsions.mp3
+entre.mp3
+2.mp3
+chaises.mp3
+ponts.mp3
+fessiers.mp3
+planche.mp3
+
+Autres mots :
+circuit.mp3
+repos.mp3
+restante.mp3
+restantes.mp3
+cycle.mp3
+de.mp3
+bravo.mp3
+entrainement.mp3
+terminé.mp3
