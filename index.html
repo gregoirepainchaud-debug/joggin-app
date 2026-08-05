@@ -1,955 +1,339 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!doctype html>
+<html lang="fr-CA">
 <head>
-  <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  >
-  <title>App Intervalles - Jogging</title>
-
-  <link rel="apple-touch-icon" href="IconeCoureur.png">
-  <link rel="icon" type="image/png" href="IconeCoureur.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Jogging">
-
-  <style>
-    :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --accent-warmup: #ffb74d;
-      --accent-run: #ff5252;
-      --accent-walk: #4caf50;
-      --text-color: #ffffff;
-      --subtext-color: #b0b0b0;
-      --input-bg: #2a2a2a;
-      --warning-color: #ffcc80;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      min-height: 100dvh;
-      overflow-x: hidden;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px 16px;
-      width: 100%;
-      max-width: 360px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      text-align: center;
-    }
-
-    .app-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 0.5rem;
-    }
-
-    .app-icon {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-      border-radius: 6px;
-    }
-
-    h1 {
-      font-size: 1.3rem;
-      margin: 0;
-      color: var(--text-color);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .total-time {
-      font-size: 1rem;
-      color: var(--subtext-color);
-      margin-bottom: 1.5rem;
-    }
-
-    .settings-column {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 1.5rem;
-      width: 100%;
-    }
-
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      width: 100%;
-      max-width: 220px;
-    }
-
-    .input-group label {
-      font-size: 0.85rem;
-      color: var(--subtext-color);
-      font-weight: 600;
-      text-align: center;
-    }
-
-    .input-group input {
-      background-color: var(--input-bg);
-      border: 1px solid #444;
-      border-radius: 8px;
-      color: var(--text-color);
-      padding: 10px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      text-align: center;
-      width: 100%;
-    }
-
-    .input-group input:focus {
-      outline: none;
-      border-color: #888;
-    }
-
-    .timer-display {
-      font-size: 4rem;
-      font-weight: bold;
-      margin: 0.5rem 0;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .phase-indicator {
-      font-size: 1.3rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
-      padding: 8px 16px;
-      border-radius: 8px;
-      display: inline-block;
-      max-width: 100%;
-    }
-
-    .phase-warmup {
-      color: var(--accent-warmup);
-      background-color: rgba(255, 183, 77, 0.15);
-    }
-
-    .phase-run {
-      color: var(--accent-run);
-      background-color: rgba(255, 82, 82, 0.15);
-    }
-
-    .phase-walk {
-      color: var(--accent-walk);
-      background-color: rgba(76, 175, 80, 0.15);
-    }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-      margin-top: 1.5rem;
-      justify-content: center;
-      width: 100%;
-    }
-
-    button {
-      background-color: #333;
-      color: #fff;
-      border: none;
-      padding: 14px 28px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      border-radius: 30px;
-      cursor: pointer;
-      width: 100%;
-      max-width: 250px;
-    }
-
-    button:disabled {
-      opacity: 0.65;
-      cursor: wait;
-    }
-
-    button.btn-primary {
-      background-color: #388e3c;
-    }
-
-    button.btn-stop {
-      background-color: #d32f2f;
-    }
-
-    .status-message {
-      display: none;
-      margin-top: 14px;
-      color: var(--warning-color);
-      font-size: 0.78rem;
-      line-height: 1.35;
-      overflow-wrap: anywhere;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Entraînement">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="logobicep.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Mon entraînement</title>
+<style>
+:root{--bg:#0f172a;--card:#111827;--line:#334155;--text:#f8fafc;--muted:#cbd5e1;--green:#22c55e;--blue:#38bdf8;--gold:#fbbf24;--red:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0f172a,#111827);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:18px 16px 52px}.head{display:flex;gap:12px;align-items:center}.logo{width:58px;height:58px;border-radius:15px}
+h1{font-size:1.7rem;margin:0}h2{font-size:1.22rem;margin:0 0 13px}p{line-height:1.45}.muted{color:var(--muted)}.small{font-size:.9rem}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;position:sticky;top:0;padding:8px 0;background:#0f172aeF;z-index:5}
+.tab{padding:11px 5px;border-radius:12px;border:1px solid var(--line);background:#1e293b;color:white;font-weight:800}.tab.active{background:var(--green);color:#052e16}
+.card{background:#111827f7;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;box-shadow:0 12px 28px #0004}
+.hidden{display:none!important}.badge{display:inline-block;border:1px solid #166534;background:#052e16;color:#bbf7d0;border-radius:999px;padding:5px 9px;font-weight:800;font-size:.86rem}
+button{width:100%;border:0;border-radius:14px;padding:15px;font-size:1rem;font-weight:850;margin-top:11px}.primary{background:var(--green);color:#052e16}.secondary{background:#334155;color:white}.danger{background:#7f1d1d;color:#fee2e2}.outline{background:transparent;color:white;border:1px solid #475569}
+.timerGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.timerBox{background:#0b1220;border:1px solid #263244;border-radius:14px;padding:12px;text-align:center}.label{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:800}.time{font-size:2rem;font-weight:900;font-variant-numeric:tabular-nums}.gold{color:var(--gold)}.blue{color:var(--blue)}
+.exercise{font-size:1.9rem;font-weight:900;margin:17px 0 7px}.phase{font-size:1.8rem;font-weight:900;text-align:center;margin:12px 0}.phase.run{color:#fb7185}.phase.walk{color:#4ade80}.phase.warm{color:#fbbf24}
+.progress{height:11px;border-radius:999px;background:#0b1220;overflow:hidden;border:1px solid #263244;margin:12px 0}.progress>div{height:100%;background:var(--green);width:0}
+input,textarea,select{width:100%;background:#0b1220;color:white;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:1rem}textarea{min-height:110px}
+label{display:block;color:var(--muted);font-weight:750;margin:11px 0 6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.history{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #263244;padding:9px 0}
+.rating{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.rating button{margin:0;padding:11px;background:#334155;color:white}.rating button.selected{background:var(--green);color:#052e16}
+.summary{display:flex;justify-content:space-between;border-bottom:1px solid #263244;padding:8px 0}
+details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:21px}li{margin:.45rem 0}
+</style>
 </head>
-
 <body>
-  <div class="card">
-    <div class="app-header">
-      <img src="IconeCoureur.png" alt="Icône Coureur" class="app-icon">
-      <h1>Entraînement</h1>
-    </div>
+<div class="wrap">
+<div class="head"><img src="logobicep.png" class="logo" alt=""><div><h1>Mon entraînement</h1><div class="muted">Renforcement · marche/course par cycles · suivi hebdomadaire</div></div></div>
+<div class="tabs"><button class="tab active" data-view="today">Aujourd’hui</button><button class="tab" data-view="history">Suivi</button><button class="tab" data-view="transfer">Importer / exporter</button></div>
 
-    <div class="total-time" id="totalTimeDisplay">Temps total : 00:00</div>
+<main id="todayView">
+<section class="card">
+<div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><div><h2 id="dateTitle"></h2><div id="dayLabel" class="muted"></div></div><span id="programBadge" class="badge">Programme</span></div>
+</section>
 
-    <div class="settings-column" id="settingsContainer">
-      <div class="input-group">
-        <label for="inputWarmup">Échauffement (sec)</label>
-        <input type="number" inputmode="numeric" id="inputWarmup" min="5" step="1" value="300">
-      </div>
+<section class="card" id="strengthCard">
+<h2>Renforcement</h2>
+<div id="strengthNone" class="muted hidden">Aucun renforcement prévu aujourd’hui.</div>
+<div id="strengthReady">
+<p id="strengthSummary" class="muted"></p><button id="startStrength" class="primary">Débuter</button>
+</div>
+<div id="strengthActive" class="hidden">
+<div class="timerGrid"><div class="timerBox"><div class="label">Temps total</div><div id="strengthTotal" class="time gold">00:00</div></div><div class="timerBox"><div id="strengthPhaseLabel" class="label">Exercice</div><div id="strengthPhase" class="time blue">00:00</div></div></div>
+<div class="progress"><div id="strengthProgress"></div></div><div id="strengthExercise" class="exercise"></div><p id="strengthInstruction" class="muted"></p><div id="strengthCounter" class="small muted"></div>
+<button id="strengthAction" class="primary">Repos</button><button id="cancelStrength" class="outline">Annuler la séance</button>
+</div>
+<div id="strengthDone" class="hidden"><div class="exercise" style="text-align:center">Séance terminée 🎉</div><div id="strengthStats"></div><button id="redoStrength" class="secondary">Refaire la séance</button></div>
+</section>
 
-      <div class="input-group">
-        <label for="inputRun">Course (sec)</label>
-        <input type="number" inputmode="numeric" id="inputRun" min="5" step="1" value="60">
-      </div>
+<section class="card" id="cardioCard">
+<h2>Marche / course</h2>
+<div id="cardioNone" class="muted hidden">Aucun cardio prévu aujourd’hui.</div>
+<div id="cardioReady">
+<div id="cardioPrescription"></div><button id="startCardio" class="primary">Débuter le cardio</button>
+</div>
+<div id="cardioActive" class="hidden">
+<div class="timerGrid"><div class="timerBox"><div class="label">Temps total</div><div id="cardioTotal" class="time gold">00:00</div></div><div class="timerBox"><div class="label">Temps restant</div><div id="cardioRemaining" class="time blue">00:00</div></div></div>
+<div id="cardioPhase" class="phase warm">Échauffement</div>
+<button id="stopCardio" class="danger">Terminer maintenant</button>
+</div>
+<div id="cardioDone" class="hidden"><div class="exercise" style="text-align:center">Cardio terminé ✓</div><div id="cardioStats"></div><button id="redoCardio" class="secondary">Refaire le cardio</button></div>
+</section>
 
-      <div class="input-group">
-        <label for="inputWalk">Marche (sec)</label>
-        <input type="number" inputmode="numeric" id="inputWalk" min="5" step="1" value="60">
-      </div>
-    </div>
+<section class="card">
+<h2>Comment ça s’est passé?</h2>
+<div class="rating" id="difficulty"><button data-v="1">Facile</button><button data-v="2">Correct</button><button data-v="3">Difficile</button></div>
+<label for="note">Note de la journée</label><textarea id="note" placeholder="Ex.: jambes plus sollicitées, reflux pendant la course, bonne énergie…"></textarea>
+<button id="saveNote" class="secondary">Sauvegarder la note</button>
+</section>
+</main>
 
-    <div id="phaseDisplay" class="phase-indicator phase-warmup">Échauffement</div>
-    <div id="timerDisplay" class="timer-display">05:00</div>
+<main id="historyView" class="hidden">
+<section class="card"><h2>Historique</h2><div id="historyList"></div></section>
+<section class="card"><details><summary>Technique des exercices</summary><ul>
+<li><strong>Pushups :</strong> corps droit et répétitions propres.</li><li><strong>Squats :</strong> hanches vers l’arrière, talons au sol.</li><li><strong>Superman :</strong> mouvement lent, sans forcer le cou.</li><li><strong>Fentes arrière :</strong> stabilité avant profondeur.</li><li><strong>Dips :</strong> chaises très stables, amplitude modeste.</li><li><strong>Ponts fessiers :</strong> serre les fessiers en haut.</li><li><strong>Planche :</strong> arrête si le bas du dos s’affaisse.</li>
+</ul></details></section>
+</main>
 
-    <div class="controls">
-      <button id="btnStart" class="btn-primary">Démarrer</button>
-      <button id="btnReset" class="btn-stop" style="display: none;">Arrêter</button>
-    </div>
+<main id="transferView" class="hidden">
+<section class="card"><h2>Importer un programme de 7 jours</h2><p class="muted">Colle la chaîne que je te donnerai. L’app montre un aperçu avant de remplacer seulement les journées futures concernées.</p><textarea id="importText" placeholder="GP1.…"></textarea><button id="previewImport" class="primary">Lire le programme</button><div id="importPreview"></div></section>
+<section class="card"><h2>Exporter mon suivi</h2><p class="muted">Tu peux exporter n’importe quand. La chaîne contient le programme actif, les séances, les chronos, la difficulté et tes notes.</p><button id="exportBtn" class="primary">Créer la chaîne d’export</button><textarea id="exportText" readonly></textarea><button id="copyExport" class="secondary">Copier</button></section>
+<section class="card"><h2>Réglages</h2><button id="testVoice" class="secondary">Tester la voix</button><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
+</main>
+</div>
 
-    <div id="statusMessage" class="status-message" aria-live="polite"></div>
-  </div>
+<script>
+(()=>{
+const KEY="gregoire_complete_training_v7";
+const $=id=>document.getElementById(id);
+let wakeLock=null, tick=null, cardioTick=null, audioCtx=null;
+const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
+const fmt=s=>{s=Math.max(0,Math.floor(s));let h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}`};
+const defaultProgram=()=>({
+ version:1,start:"2026-08-04",days:[
+ {date:"2026-08-04",label:"Séance légère",strength:{circuits:2,ex:[["p",12],["s",12],["u",10],["l",6],["d",5],["b",12],["k",20]]},cardio:{w:300,r:30,m:90,n:15,c:300}},
+ {date:"2026-08-05",label:"Séance principale",strength:{circuits:2,ex:[["p",18],["s",15],["u",12],["l",8],["d",6],["b",15],["k",25]]},cardio:{w:300,r:30,m:90,n:15,c:300}},
+ {date:"2026-08-06",label:"Séance légère",strength:{circuits:2,ex:[["p",12],["s",10],["u",8],["l",5],["d",4],["b",10],["k",20]]},cardio:{w:300,r:0,m:0,total:1800,c:300}},
+ {date:"2026-08-07",label:"Séance principale",strength:{circuits:2,ex:[["p",18],["s",15],["u",12],["l",8],["d",6],["b",15],["k",25]]},cardio:{w:300,r:30,m:90,n:15,c:300}},
+ {date:"2026-08-08",label:"Cardio facile",strength:null,cardio:{w:300,r:0,m:0,total:1800,c:300}},
+ {date:"2026-08-09",label:"Repos",strength:null,cardio:null},
+ {date:"2026-08-10",label:"Séance principale",strength:{circuits:2,ex:[["p",18],["s",15],["u",12],["l",8],["d",6],["b",15],["k",25]]},cardio:{w:300,r:30,m:90,n:15,c:300}}
+ ]});
+const blank=()=>({version:5,program:defaultProgram(),previousProgram:null,days:{}});
+let state=load();
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||blank()}catch{return blank()}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function getDay(){let k=todayKey();return {k,plan:state.program.days.find(x=>x.date===k)||null,data:state.days[k]||{}}}
+const names={p:"Pushups",s:"Squats",u:"Superman",l:"Fentes arrière par jambe",d:"Dips triceps",b:"Ponts fessiers",k:"Planche"};
+const instructions={p:"Garde environ deux répétitions propres en réserve.",s:"Descends de façon contrôlée, sans rebondir.",u:"Lève doucement bras et jambes, sans élan.",l:"Reste stable et recule une jambe à la fois.",d:"Utilise des chaises parfaitement stables et descends peu.",b:"Serre les fessiers en haut.",k:"Garde le corps droit; arrête avant que le dos s’affaisse."};
+function seq(plan){if(!plan?.strength)return[];let a=[];for(let c=1;c<=plan.strength.circuits;c++)for(const [id,n] of plan.strength.ex)a.push({id,n,c});return a}
+function render(){
+ const {k,plan,data}=getDay(); let d=new Date(k+"T12:00:00");
+ $("dateTitle").textContent=d.toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+ $("dayLabel").textContent=plan?.label||"Aucun programme chargé pour cette date";$("programBadge").textContent=state.program.start?`Bloc du ${state.program.start}`:"Programme";
+ renderStrength(plan,data);renderCardio(plan,data);renderNotes(data);renderHistory();
+}
+function renderStrength(plan,data){
+ ["strengthNone","strengthReady","strengthActive","strengthDone"].forEach(x=>$(x).classList.add("hidden"));
+ if(!plan?.strength){$("strengthNone").classList.remove("hidden");return}
+ let q=seq(plan);
+ if(data.strengthSession){$("strengthActive").classList.remove("hidden");renderStrengthActive(q,data.strengthSession);startStrengthTick();return}
+ if(data.strengthDone){$("strengthDone").classList.remove("hidden");let r=data.strengthResult||{};$("strengthStats").innerHTML=`<div class=summary><span>Total</span><strong>${fmt(r.total||0)}</strong></div><div class=summary><span>Exercices</span><strong>${fmt((r.ex||[]).reduce((a,b)=>a+b,0))}</strong></div><div class=summary><span>Repos</span><strong>${fmt((r.rest||[]).reduce((a,b)=>a+b,0))}</strong></div>`;return}
+ $("strengthReady").classList.remove("hidden");$("strengthSummary").textContent=`${plan.strength.circuits} circuits · ${plan.strength.ex.length} exercices par circuit.`;
+}
+function startStrength(){
+ const {k,plan,data}=getDay();let now=Date.now();state.days[k]={...data,strengthSession:{i:0,phase:"exercise",start:now,phaseStart:now,ex:[],rest:[]},strengthDone:false};save();render()
+}
+function renderStrengthActive(q,s){
+ let e=q[Math.min(s.i,q.length-1)],rest=s.phase==="rest";
+ $("strengthPhaseLabel").textContent=rest?"Repos":"Exercice";$("strengthExercise").textContent=rest?"Repos":`${e.id==="k"?e.n+" secondes":e.n} ${names[e.id]}`;
+ $("strengthInstruction").textContent=rest?"Prends le temps qu’il te faut. Le chrono total continue.":instructions[e.id];
+ $("strengthCounter").textContent=rest?`Après l’exercice ${s.i+1} sur ${q.length}`:`Circuit ${e.c} sur ${getDay().plan.strength.circuits} · exercice ${s.i+1} sur ${q.length}`;
+ $("strengthAction").textContent=rest?"Prochain exercice":(s.i===q.length-1?"Terminer la séance":"Repos");
+ $("strengthProgress").style.width=`${s.i/q.length*100}%`;updateStrengthTimers();
+}
+function startStrengthTick(){clearInterval(tick);tick=setInterval(updateStrengthTimers,250)}
+function updateStrengthTimers(){let s=getDay().data.strengthSession;if(!s)return;$("strengthTotal").textContent=fmt((Date.now()-s.start)/1000);$("strengthPhase").textContent=fmt((Date.now()-s.phaseStart)/1000)}
+function strengthAction(){
+ let {k,plan,data}=getDay(),s=data.strengthSession,q=seq(plan),now=Date.now();if(!s)return;
+ if(s.phase==="exercise"){s.ex[s.i]=Math.floor((now-s.phaseStart)/1000);if(s.i===q.length-1){state.days[k]={...data,strengthSession:null,strengthDone:true,strengthResult:{total:Math.floor((now-s.start)/1000),ex:s.ex,rest:s.rest}};save();render();return}s.phase="rest";s.phaseStart=now}
+ else{s.rest[s.i]=Math.floor((now-s.phaseStart)/1000);s.i++;s.phase="exercise";s.phaseStart=now}
+ state.days[k]={...data,strengthSession:s};save();renderStrengthActive(q,s)
+}
+function cancelStrength(){if(!confirm("Annuler cette séance?"))return;let {k,data}=getDay();state.days[k]={...data,strengthSession:null};save();render()}
+function redoStrength(){let {k,data}=getDay();state.days[k]={...data,strengthDone:false,strengthResult:null};save();render()}
 
-  <script>
-    "use strict";
+function cardioText(c){if(!c)return"";if(c.r>0){let n=c.n||Math.max(1,Math.floor((c.total||0)/(c.r+c.m)));let alt=n*(c.r+c.m);return `<p><strong>Échauffement :</strong> ${c.w/60} min de marche.</p><p><strong>Intervalles :</strong> ${n} cycles de ${c.r} s de course + ${c.m} s de marche (${Math.round(alt/60)} min d’alternance).</p><p><strong>Retour au calme :</strong> ${c.c/60} min de marche.</p>`}return `<p><strong>Marche rapide ou jogging facile :</strong> ${Math.round((c.w+c.total+c.c)/60)} minutes au total.</p>`}
+function renderCardio(plan,data){
+ ["cardioNone","cardioReady","cardioActive","cardioDone"].forEach(x=>$(x).classList.add("hidden"));
+ if(!plan?.cardio){$("cardioNone").classList.remove("hidden");return}
+ if(data.cardioSession){$("cardioActive").classList.remove("hidden");renderCardioActive(data.cardioSession);startCardioTick();return}
+ if(data.cardioDone){$("cardioDone").classList.remove("hidden");let r=data.cardioResult||{};$("cardioStats").innerHTML=`<div class=summary><span>Temps total</span><strong>${fmt(r.total||0)}</strong></div><div class=summary><span>Course</span><strong>${fmt(r.run||0)}</strong></div><div class=summary><span>Marche</span><strong>${fmt(r.walk||0)}</strong></div>`;return}
+ $("cardioReady").classList.remove("hidden");$("cardioPrescription").innerHTML=cardioText(plan.cardio)
+}
+async function requestWake(){try{if("wakeLock"in navigator)wakeLock=await navigator.wakeLock.request("screen")}catch{}}
+function releaseWake(){try{wakeLock?.release()}catch{}wakeLock=null}
+function beep(freq=700,d=.12){try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.16,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d);o.start();o.stop(audioCtx.currentTime+d)}catch{}}
+const SPEECH_GAP=0.015;
+let speechQueuePromise=Promise.resolve();
+let activeSpeechAudio=null;
 
-    /*
-      STRUCTURE DES FICHIERS
+const speechFileOverrides={
+  "échauffement":"echauffement",
+  "entraînement":"entrainement",
+  "terminé":"terminé",
+  "série":"série",
+  "l'exercice":"lexercice",
+  "l’exercice":"lexercice",
+  "60":"soixante"
+};
 
-      Racine du site :
-        index.html
-        IconeCoureur.png
-        cloche.wav
-        decompte_5s.wav
+function normalizeSpeechToken(token){
+  return String(token)
+    .toLowerCase()
+    .trim()
+    .replace(/[.,!?;:()]/g,"");
+}
 
-      Sous-répertoire :
-        speech/
-          courir.mp3
-          marcher.mp3
-          echauffement.mp3
-          etc.
+function tokenToSpeechFile(token){
+  const normalized=normalizeSpeechToken(token);
+  const stem=speechFileOverrides[normalized] || normalized;
+  return `speech/${encodeURIComponent(stem)}.mp3`;
+}
 
-      Pour chaque mot, le code essaie d'abord le MP3, puis le WAV.
-    */
-
-    // -------------------------------------------------------------------------
-    // CONFIGURATION AUDIO
-    // -------------------------------------------------------------------------
-
-    const SPEECH_DIRECTORY = "speech/";
-    const SPEECH_EXTENSIONS = ["mp3", "wav"];
-
-    const SYSTEM_AUDIO_FILES = {
-      bell: "cloche.wav",
-      countdown: "decompte_5s.wav"
+function playSpeechFile(token){
+  return new Promise(resolve=>{
+    const audio=new Audio(tokenToSpeechFile(token));
+    activeSpeechAudio=audio;
+    let finished=false;
+    const done=()=>{
+      if(finished)return;
+      finished=true;
+      activeSpeechAudio=null;
+      setTimeout(resolve,SPEECH_GAP*1000);
     };
+    audio.preload="auto";
+    audio.onended=done;
+    audio.onerror=()=>{
+      console.warn("Fichier vocal manquant :",tokenToSpeechFile(token));
+      done();
+    };
+    const result=audio.play();
+    if(result?.catch)result.catch(done);
+  });
+}
 
-    /*
-      Ces cinq fichiers ne figuraient pas dans la liste fournie, mais ils sont
-      nécessaires pour produire toutes les phrases correctement :
+function cancelSpeech(){
+  speechQueuePromise=Promise.resolve();
+  if(activeSpeechAudio){
+    try{activeSpeechAudio.pause();activeSpeechAudio.currentTime=0}catch{}
+    activeSpeechAudio=null;
+  }
+}
 
-        speech/seconde.mp3
-        speech/minutes.mp3
-        speech/restantes.mp3
-        speech/40.mp3
-        speech/50.mp3
+function speakWords(words){
+  const tokens=(Array.isArray(words)?words:String(words).split(/\s+/)).filter(Boolean);
+  cancelSpeech();
+  speechQueuePromise=tokens.reduce(
+    (promise,token)=>promise.then(()=>playSpeechFile(token)),
+    Promise.resolve()
+  );
+  return speechQueuePromise;
+}
 
-      Le code accepte aussi leur version .wav.
-    */
-    const REQUIRED_SPEECH_CLIPS = [
-      "une",
-      "seconde",
-      "secondes",
-      "minute",
-      "minutes",
-      "et",
-      "restante",
-      "restantes",
-      "courir",
-      "marcher",
-      "echauffement",
-      "soixante",
-      "40",
-      "45",
-      "50",
-      ...Array.from({ length: 29 }, (_, index) => String(index + 2))
-    ];
+function numberWords(n){
+  n=Number(n);
+  if(n===60)return["soixante"];
+  if(Number.isInteger(n)&&n>=1&&n<=30)return[String(n)];
+  if([40,45,50,70,80,90,100].includes(n))return[String(n)];
+  // Safe fallback: try the numeric filename if a future file is added.
+  return[String(n)];
+}
 
-    let audioCtx = null;
-    let masterGain = null;
-    let speechGain = null;
-    let speechLimiter = null;
-    let audioAssetsPromise = null;
-    let scheduledAudioUntil = 0;
+function durationWords(seconds){
+  seconds=Number(seconds);
+  if(seconds===60)return["une","minute"];
+  if(seconds%60===0){
+    const minutes=seconds/60;
+    return[...(minutes===1?["une"]:numberWords(minutes)),minutes===1?"minute":"minutes"];
+  }
+  return[...numberWords(seconds),seconds===1?"seconde":"secondes"];
+}
 
-    const speechBuffers = new Map();
-    const systemBuffers = new Map();
-    const activeSources = new Set();
-
-    function configureAudioSession() {
-      /*
-        "transient" est le meilleur choix web pour tenter de jouer par-dessus
-        Spotify et, lorsque le système le permet, réduire temporairement son
-        volume. Le ducking exact reste décidé par iOS.
-      */
-      if ("audioSession" in navigator) {
-        try {
-          navigator.audioSession.type = "transient";
-        } catch (error) {
-          console.warn("AudioSession transient non disponible :", error);
-        }
-      }
+function announceWarmup(seconds){
+  return speakWords(["echauffement",...durationWords(seconds)]);
+}
+function announceRun(seconds,cycle,totalCycles){
+  return speakWords(["courir",...durationWords(seconds),"cycle",...numberWords(cycle),"de",...numberWords(totalCycles)]);
+}
+function announceWalk(seconds){
+  return speakWords(["marcher",...durationWords(seconds)]);
+}
+function announceCooldown(seconds){
+  return speakWords(["retour","au","calme",...durationWords(seconds)]);
+}
+function announceFinished(){
+  return speakWords(["entrainement","terminé","bravo"]);
+}
+async function startCardio(){
+ let {k,plan,data}=getDay(),c={...plan.cardio},now=Date.now();
+ if(c.r>0&&!c.n)c.n=Math.max(1,Math.floor((c.total||0)/(c.r+c.m)));
+ let phase=c.w>0?"warm":(c.r>0?"run":"walk"),duration=c.w||c.total;
+ state.days[k]={...data,cardioSession:{start:now,phase,phaseStart:now,remaining:duration,run:0,walk:0,config:c,last:now,cycle:c.r>0?(phase==="run"?1:0):0},cardioDone:false};
+ save();beep();
+ if(phase==="warm")announceWarmup(c.w);
+ else if(phase==="run")announceRun(c.r,1,c.n);
+ else announceWalk(c.total);
+ await requestWake();render()
+}
+function startCardioTick(){clearInterval(cardioTick);cardioTick=setInterval(cardioStep,1000)}
+function cardioStep(){
+ let {k,data}=getDay(),s=data.cardioSession;if(!s)return;
+ let now=Date.now(),delta=Math.max(1,Math.round((now-s.last)/1000));s.last=now;s.remaining-=delta;
+ if(s.phase==="run")s.run+=delta;else s.walk+=delta;
+ if(s.remaining<=0){
+  let c=s.config;
+  if(s.phase==="warm"){
+    if(c.r>0){
+      s.phase="run";s.cycle=1;s.remaining=c.r;s.phaseStart=now;
+      beep(900);announceRun(c.r,s.cycle,c.n);
+    }else{
+      s.phase="walk";s.remaining=c.total;s.phaseStart=now;beep(600);announceWalk(c.total);
     }
-
-    async function initAudio() {
-      configureAudioSession();
-
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-        if (!AudioContextClass) {
-          throw new Error("Web Audio API non disponible sur ce navigateur.");
-        }
-
-        audioCtx = new AudioContextClass();
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = 1;
-        masterGain.connect(audioCtx.destination);
-
-        // Les fichiers du dossier speech sont augmentés de +3 dB.
-        // Gain linéaire = 10^(3/20), soit environ 1,413.
-        speechGain = audioCtx.createGain();
-        speechGain.gain.value = Math.pow(10, 3 / 20);
-
-        // Limiteur léger pour réduire le risque de saturation après le gain.
-        speechLimiter = audioCtx.createDynamicsCompressor();
-        speechLimiter.threshold.value = -3;
-        speechLimiter.knee.value = 3;
-        speechLimiter.ratio.value = 12;
-        speechLimiter.attack.value = 0.003;
-        speechLimiter.release.value = 0.08;
-
-        speechGain.connect(speechLimiter);
-        speechLimiter.connect(masterGain);
-      }
-
-      if (audioCtx.state === "suspended") {
-        await audioCtx.resume();
-      }
-
-      // Petit son silencieux pour déverrouiller Web Audio après le toucher.
-      const silentBuffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-      const silentSource = audioCtx.createBufferSource();
-      silentSource.buffer = silentBuffer;
-      silentSource.connect(masterGain);
-      silentSource.start();
-
-      if (!audioAssetsPromise) {
-        audioAssetsPromise = loadAllAudioAssets();
-      }
-
-      await audioAssetsPromise;
-    }
-
-    async function fetchAndDecodeAudio(url) {
-      const response = await fetch(url, { cache: "force-cache" });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      return await audioCtx.decodeAudioData(arrayBuffer);
-    }
-
-    async function loadSpeechClip(name) {
-      if (speechBuffers.has(name)) {
-        return true;
-      }
-
-      for (const extension of SPEECH_EXTENSIONS) {
-        const url = `${SPEECH_DIRECTORY}${name}.${extension}`;
-
-        try {
-          const buffer = await fetchAndDecodeAudio(url);
-          speechBuffers.set(name, buffer);
-          return true;
-        } catch (error) {
-          console.debug(`Impossible de charger ${url}`, error);
-        }
-      }
-
-      return false;
-    }
-
-    async function loadSystemClip(name, url) {
-      try {
-        const buffer = await fetchAndDecodeAudio(url);
-        systemBuffers.set(name, buffer);
-        return true;
-      } catch (error) {
-        console.error(`Impossible de charger ${url}`, error);
-        return false;
-      }
-    }
-
-    async function loadAllAudioAssets() {
-      const missingFiles = [];
-
-      const systemResults = await Promise.all(
-        Object.entries(SYSTEM_AUDIO_FILES).map(async ([name, url]) => {
-          const loaded = await loadSystemClip(name, url);
-          if (!loaded) {
-            missingFiles.push(url);
-          }
-        })
-      );
-
-      const speechResults = await Promise.all(
-        [...new Set(REQUIRED_SPEECH_CLIPS)].map(async (name) => {
-          const loaded = await loadSpeechClip(name);
-          if (!loaded) {
-            missingFiles.push(`${SPEECH_DIRECTORY}${name}.mp3 ou .wav`);
-          }
-        })
-      );
-
-      if (missingFiles.length > 0) {
-        showStatus(
-          "Fichiers audio introuvables : " + missingFiles.join(", ")
-        );
-      } else {
-        clearStatus();
-      }
-
-      return { systemResults, speechResults };
-    }
-
-    function getBuffer(item) {
-      if (item.type === "system") {
-        return systemBuffers.get(item.name) || null;
-      }
-
-      return speechBuffers.get(item.name) || null;
-    }
-
-    function scheduleAudioSequence(items, defaultGap = 0.055) {
-      if (!audioCtx || audioCtx.state !== "running") {
-        return;
-      }
-
-      configureAudioSession();
-
-      let startTime = Math.max(
-        audioCtx.currentTime + 0.025,
-        scheduledAudioUntil
-      );
-
-      for (const item of items) {
-        const buffer = getBuffer(item);
-
-        if (!buffer) {
-          console.warn("Clip ignoré, car il est absent :", item);
-          continue;
-        }
-
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-
-        if (item.type === "speech") {
-          source.connect(speechGain);
-        } else {
-          source.connect(masterGain);
-        }
-
-        activeSources.add(source);
-
-        source.onended = () => {
-          activeSources.delete(source);
-        };
-
-        source.start(startTime);
-
-        const gapAfter =
-          typeof item.gapAfter === "number" ? item.gapAfter : defaultGap;
-
-        startTime += buffer.duration + gapAfter;
-      }
-
-      scheduledAudioUntil = startTime;
-    }
-
-    function playSystemSound(name) {
-      scheduleAudioSequence([
-        { type: "system", name, gapAfter: 0 }
-      ]);
-    }
-
-    function playSpeechSequence(clipNames) {
-      scheduleAudioSequence(
-        clipNames.map(name => ({ type: "speech", name }))
-      );
-    }
-
-    function playBellThenSpeech(clipNames) {
-      const items = [
-        { type: "system", name: "bell", gapAfter: 0.25 },
-        ...clipNames.map(name => ({ type: "speech", name }))
-      ];
-
-      scheduleAudioSequence(items);
-    }
-
-    function stopAllAudio() {
-      for (const source of activeSources) {
-        try {
-          source.stop();
-        } catch (error) {
-          // La source était peut-être déjà terminée.
-        }
-      }
-
-      activeSources.clear();
-
-      if (audioCtx) {
-        scheduledAudioUntil = audioCtx.currentTime;
-      }
-    }
-
-    // -------------------------------------------------------------------------
-    // ASSEMBLAGE DES PHRASES
-    // -------------------------------------------------------------------------
-
-    function numberToClipNames(number) {
-      const n = Math.trunc(number);
-
-      if (n === 1) {
-        return ["une"];
-      }
-
-      if (n >= 2 && n <= 30) {
-        return [String(n)];
-      }
-
-      if (n >= 31 && n <= 39) {
-        if (n === 31) {
-          return ["30", "et", "une"];
-        }
-
-        return ["30", String(n - 30)];
-      }
-
-      if (n >= 40 && n <= 49) {
-        if (n === 40) {
-          return ["40"];
-        }
-
-        if (n === 41) {
-          return ["40", "et", "une"];
-        }
-
-        if (n === 45) {
-          return ["45"];
-        }
-
-        return ["40", String(n - 40)];
-      }
-
-      if (n >= 50 && n <= 59) {
-        if (n === 50) {
-          return ["50"];
-        }
-
-        if (n === 51) {
-          return ["50", "et", "une"];
-        }
-
-        return ["50", String(n - 50)];
-      }
-
-      if (n === 60) {
-        return ["soixante"];
-      }
-
-      /*
-        Le minuteur continue de fonctionner si une valeur dépasse 60.
-        Seule l'annonce vocale de ce nombre sera omise.
-      */
-      console.warn(`Aucun assemblage vocal défini pour le nombre ${n}.`);
-      return [];
-    }
-
-    function durationToClipNames(totalSeconds) {
-      const secondsValue = Math.max(0, Math.trunc(totalSeconds));
-      const minutes = Math.floor(secondsValue / 60);
-      const seconds = secondsValue % 60;
-      const clips = [];
-
-      if (minutes > 0) {
-        clips.push(...numberToClipNames(minutes));
-        clips.push(minutes === 1 ? "minute" : "minutes");
-      }
-
-      if (minutes > 0 && seconds > 0) {
-        clips.push("et");
-      }
-
-      if (seconds > 0) {
-        clips.push(...numberToClipNames(seconds));
-        clips.push(seconds === 1 ? "seconde" : "secondes");
-      }
-
-      return clips;
-    }
-
-    function remainingTimeToClipNames(totalSeconds) {
-      const clips = durationToClipNames(totalSeconds);
-
-      const singular =
-        totalSeconds === 1 ||
-        totalSeconds === 60;
-
-      clips.push(singular ? "restante" : "restantes");
-      return clips;
-    }
-
-    function phaseToClipName(phase) {
-      if (phase === "WARMUP") {
-        return "echauffement";
-      }
-
-      if (phase === "RUN") {
-        return "courir";
-      }
-
-      return "marcher";
-    }
-
-    function announcePhase(phase, duration, withBell = false) {
-      const clips = [
-        phaseToClipName(phase),
-        ...durationToClipNames(duration)
-      ];
-
-      if (withBell) {
-        playBellThenSpeech(clips);
-      } else {
-        playSpeechSequence(clips);
-      }
-    }
-
-    function announceRemainingTime(seconds) {
-      playSpeechSequence(remainingTimeToClipNames(seconds));
-    }
-
-    // -------------------------------------------------------------------------
-    // MINUTEUR
-    // -------------------------------------------------------------------------
-
-    let durationWarmup =
-      parseInt(localStorage.getItem("durationWarmup"), 10) || 300;
-
-    let durationRun =
-      parseInt(localStorage.getItem("durationRun"), 10) || 60;
-
-    let durationWalk =
-      parseInt(localStorage.getItem("durationWalk"), 10) || 60;
-
-    let currentPhase = "WARMUP";
-    let timeLeft = durationWarmup;
-    let totalTimeElapsed = 0;
-
-    let timerInterval = null;
-    let wakeLock = null;
-    let countdownTriggered = false;
-
-    const inputWarmup = document.getElementById("inputWarmup");
-    const inputRun = document.getElementById("inputRun");
-    const inputWalk = document.getElementById("inputWalk");
-
-    const settingsContainer = document.getElementById("settingsContainer");
-    const timerDisplay = document.getElementById("timerDisplay");
-    const totalTimeDisplay = document.getElementById("totalTimeDisplay");
-    const phaseDisplay = document.getElementById("phaseDisplay");
-    const btnStart = document.getElementById("btnStart");
-    const btnReset = document.getElementById("btnReset");
-    const statusMessage = document.getElementById("statusMessage");
-
-    inputWarmup.value = durationWarmup;
-    inputRun.value = durationRun;
-    inputWalk.value = durationWalk;
-
-    function showStatus(message) {
-      statusMessage.textContent = message;
-      statusMessage.style.display = "block";
-    }
-
-    function clearStatus() {
-      statusMessage.textContent = "";
-      statusMessage.style.display = "none";
-    }
-
-    function readDuration(input, fallback) {
-      const parsed = parseInt(input.value, 10);
-      return Math.max(5, Number.isFinite(parsed) ? parsed : fallback);
-    }
-
-    async function requestWakeLock() {
-      try {
-        if ("wakeLock" in navigator) {
-          wakeLock = await navigator.wakeLock.request("screen");
-        }
-      } catch (error) {
-        console.warn("Wake Lock non disponible :", error);
-      }
-    }
-
-    async function releaseWakeLock() {
-      if (!wakeLock) {
-        return;
-      }
-
-      try {
-        await wakeLock.release();
-      } catch (error) {
-        console.warn("Erreur lors de la libération du Wake Lock :", error);
-      } finally {
-        wakeLock = null;
-      }
-    }
-
-    document.addEventListener("visibilitychange", async () => {
-      if (
-        document.visibilityState === "visible" &&
-        timerInterval &&
-        !wakeLock
-      ) {
-        await requestWakeLock();
-      }
-    });
-
-    function formatTime(seconds) {
-      const safeSeconds = Math.max(0, Math.trunc(seconds));
-      const minutes = Math.floor(safeSeconds / 60);
-      const remainingSeconds = safeSeconds % 60;
-
-      return (
-        String(minutes).padStart(2, "0") +
-        ":" +
-        String(remainingSeconds).padStart(2, "0")
-      );
-    }
-
-    function updateUI() {
-      timerDisplay.textContent = formatTime(timeLeft);
-      totalTimeDisplay.textContent =
-        `Temps total : ${formatTime(totalTimeElapsed)}`;
-
-      if (currentPhase === "WARMUP") {
-        phaseDisplay.textContent = "Échauffement";
-        phaseDisplay.className = "phase-indicator phase-warmup";
-      } else if (currentPhase === "RUN") {
-        phaseDisplay.textContent = "Course";
-        phaseDisplay.className = "phase-indicator phase-run";
-      } else {
-        phaseDisplay.textContent = "Marche";
-        phaseDisplay.className = "phase-indicator phase-walk";
-      }
-    }
-
-    function shouldAnnounceRemaining(nextTime) {
-      if (nextTime <= 5) {
-        return false;
-      }
-
-      // Toutes les phases annoncent toujours les 15 dernières secondes.
-      if (nextTime === 15) {
-        return true;
-      }
-
-      // Échauffement : annonce chaque minute.
-      if (currentPhase === "WARMUP") {
-        return nextTime % 60 === 0;
-      }
-
-      // Marche : même logique que l'échauffement, annonce chaque minute.
-      if (currentPhase === "WALK") {
-        return nextTime % 60 === 0;
-      }
-
-      // Course : annonce chaque tranche de 15 secondes.
-      return nextTime % 15 === 0;
-    }
-
-    function advanceToNextPhase() {
-      countdownTriggered = false;
-
-      if (currentPhase === "WARMUP" || currentPhase === "WALK") {
-        currentPhase = "RUN";
-        timeLeft = durationRun;
-      } else {
-        currentPhase = "WALK";
-        timeLeft = durationWalk;
-      }
-
-      announcePhase(currentPhase, timeLeft, true);
-      updateUI();
-    }
-
-    function tick() {
-      totalTimeElapsed += 1;
-
-      const nextTime = timeLeft - 1;
-
-      if (nextTime === 5 && !countdownTriggered) {
-        playSystemSound("countdown");
-        countdownTriggered = true;
-      }
-
-      if (shouldAnnounceRemaining(nextTime)) {
-        announceRemainingTime(nextTime);
-      }
-
-      if (nextTime <= 0) {
-        advanceToNextPhase();
-        return;
-      }
-
-      timeLeft = nextTime;
-      updateUI();
-    }
-
-    async function startTimer() {
-      if (timerInterval) {
-        return;
-      }
-
-      btnStart.disabled = true;
-      btnStart.textContent = "Chargement…";
-      clearStatus();
-
-      try {
-        await initAudio();
-      } catch (error) {
-        console.error(error);
-        showStatus(
-          "L'audio n'a pas pu être initialisé. Recharge la page et réessaie."
-        );
-        btnStart.disabled = false;
-        btnStart.textContent = "Démarrer";
-        return;
-      }
-
-      durationWarmup = readDuration(inputWarmup, 300);
-      durationRun = readDuration(inputRun, 60);
-      durationWalk = readDuration(inputWalk, 60);
-
-      inputWarmup.value = durationWarmup;
-      inputRun.value = durationRun;
-      inputWalk.value = durationWalk;
-
-      localStorage.setItem("durationWarmup", String(durationWarmup));
-      localStorage.setItem("durationRun", String(durationRun));
-      localStorage.setItem("durationWalk", String(durationWalk));
-
-      settingsContainer.style.display = "none";
-      btnStart.style.display = "none";
-      btnReset.style.display = "inline-block";
-
-      currentPhase = "WARMUP";
-      timeLeft = durationWarmup;
-      totalTimeElapsed = 0;
-      countdownTriggered = false;
-
-      updateUI();
-
-      announcePhase("WARMUP", durationWarmup, true);
-
-      await requestWakeLock();
-
-      timerInterval = window.setInterval(tick, 1000);
-
-      btnStart.disabled = false;
-      btnStart.textContent = "Démarrer";
-    }
-
-    async function resetTimer() {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
-
-      stopAllAudio();
-      await releaseWakeLock();
-
-      currentPhase = "WARMUP";
-      timeLeft = durationWarmup;
-      // On conserve totalTimeElapsed afin de garder le dernier temps total affiché.
-      // Il sera remis à zéro uniquement au prochain appui sur « Démarrer ».
-      countdownTriggered = false;
-
-      settingsContainer.style.display = "flex";
-      btnStart.style.display = "inline-block";
-      btnReset.style.display = "none";
-
-      updateUI();
-    }
-
-    inputWarmup.addEventListener("change", () => {
-      durationWarmup = readDuration(inputWarmup, 300);
-      inputWarmup.value = durationWarmup;
-
-      if (!timerInterval && currentPhase === "WARMUP") {
-        timeLeft = durationWarmup;
-        updateUI();
-      }
-    });
-
-    inputRun.addEventListener("change", () => {
-      durationRun = readDuration(inputRun, 60);
-      inputRun.value = durationRun;
-    });
-
-    inputWalk.addEventListener("change", () => {
-      durationWalk = readDuration(inputWalk, 60);
-      inputWalk.value = durationWalk;
-    });
-
-    btnStart.addEventListener("click", startTimer);
-    btnReset.addEventListener("click", resetTimer);
-
-    updateUI();
-  </script>
+  }else if(s.phase==="run"){
+    s.phase="walk";s.remaining=c.m;s.phaseStart=now;
+    beep(600);announceWalk(c.m);
+  }else if(s.phase==="walk"&&c.r>0){
+    if(s.cycle<c.n){
+      s.cycle++;s.phase="run";s.remaining=c.r;s.phaseStart=now;
+      beep(900);announceRun(c.r,s.cycle,c.n);
+    }else if(c.c>0){
+      s.phase="cool";s.remaining=c.c;s.phaseStart=now;
+      beep(500);announceCooldown(c.c);
+    }else{finishCardio();return}
+  }else if(s.phase==="walk"&&c.r===0){
+    if(c.c>0){
+      s.phase="cool";s.remaining=c.c;s.phaseStart=now;
+      beep(500);announceCooldown(c.c);
+    }else{finishCardio();return}
+  }else if(s.phase==="cool"){finishCardio();return}
+ }
+ state.days[k]={...data,cardioSession:s};save();renderCardioActive(s)
+}
+function renderCardioActive(s){$("cardioTotal").textContent=fmt((Date.now()-s.start)/1000);$("cardioRemaining").textContent=fmt(s.remaining);let t=s.phase==="warm"?"Échauffement":s.phase==="run"?`Course · cycle ${s.cycle} de ${s.config.n}`:s.phase==="walk"&&s.config.r>0?`Marche · après cycle ${s.cycle} de ${s.config.n}`:s.phase==="walk"?"Marche":"Retour au calme";$("cardioPhase").textContent=t;$("cardioPhase").className=`phase ${s.phase==="run"?"run":s.phase==="walk"||s.phase==="cool"?"walk":"warm"}`}
+function finishCardio(){clearInterval(cardioTick);releaseWake();let {k,data}=getDay(),s=data.cardioSession;if(!s)return;let total=Math.floor((Date.now()-s.start)/1000);state.days[k]={...data,cardioSession:null,cardioDone:true,cardioResult:{total,run:s.run,walk:s.walk}};save();beep(1000,.25);announceFinished();render()}
+function redoCardio(){let {k,data}=getDay();state.days[k]={...data,cardioDone:false,cardioResult:null};save();render()}
+
+function renderNotes(data){$("note").value=data.note||"";document.querySelectorAll("#difficulty button").forEach(b=>b.classList.toggle("selected",Number(b.dataset.v)===data.difficulty))}
+function saveNote(){let {k,data}=getDay();state.days[k]={...data,note:$("note").value.trim(),difficulty:Number(document.querySelector("#difficulty .selected")?.dataset.v||0)};save();alert("Note sauvegardée.")}
+function renderHistory(){let e=Object.entries(state.days).filter(([,v])=>v.strengthDone||v.cardioDone||v.note).sort((a,b)=>b[0].localeCompare(a[0]));$("historyList").innerHTML=e.length?e.map(([d,v])=>{let a=[];if(v.strengthDone)a.push("Musculation");if(v.cardioDone)a.push("Cardio");if(v.difficulty)a.push(["","Facile","Correct","Difficile"][v.difficulty]);return `<div class=history><strong>${new Date(d+"T12:00:00").toLocaleDateString("fr-CA",{day:"numeric",month:"short"})}</strong><span class=muted>${a.join(" · ")}</span></div>${v.note?`<div class="small muted" style="padding:0 0 9px">${v.note}</div>`:""}`}).join(""):"<div class=muted>Aucune donnée pour le moment.</div>"}
+
+function b64e(obj){let s=JSON.stringify(obj),bytes=new TextEncoder().encode(s),bin="";bytes.forEach(x=>bin+=String.fromCharCode(x));return btoa(bin).replaceAll("+","-").replaceAll("/","_").replaceAll("=","")}
+function b64d(s){s=s.replaceAll("-","+").replaceAll("_","/");while(s.length%4)s+="=";let bin=atob(s),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}
+function importPreview(){
+ try{let raw=$("importText").value.trim();if(!raw.startsWith("GP1."))throw Error("Préfixe invalide");let p=b64d(raw.slice(4));validateProgram(p);$("importPreview").innerHTML=`<p><strong>${p.days.length} jours</strong>, du ${p.days[0].date} au ${p.days.at(-1).date}.</p><button id=confirmImport class=primary>Installer ce programme</button>`;$("confirmImport").onclick=()=>{state.previousProgram=state.program;state.program=p;save();alert("Programme installé.");render()}}catch(e){$("importPreview").innerHTML=`<p style="color:#fca5a5">Chaîne invalide : ${e.message}</p>`}
+}
+function validateProgram(p){if(!p||p.version!==1||!Array.isArray(p.days)||p.days.length>7||!p.days.length)throw Error("format non reconnu");for(const d of p.days){if(!/^\d{4}-\d{2}-\d{2}$/.test(d.date))throw Error("date invalide");if(d.strength){if(![1,2,3].includes(d.strength.circuits))throw Error("circuits invalides");for(const [id,n] of d.strength.ex){if(!names[id]||n<1||n>200)throw Error("exercice invalide")}}}}
+function exportData(){let payload={version:1,exported:new Date().toISOString(),program:state.program,days:state.days};$("exportText").value="GX1."+b64e(payload)}
+function restore(){if(!state.previousProgram)return alert("Aucun programme précédent.");[state.program,state.previousProgram]=[state.previousProgram,state.program];save();render();alert("Programme précédent restauré.")}
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));["today","history","transfer"].forEach(v=>$(v+"View").classList.toggle("hidden",v!==b.dataset.view));render()});
+$("startStrength").onclick=startStrength;$("strengthAction").onclick=strengthAction;$("cancelStrength").onclick=cancelStrength;$("redoStrength").onclick=redoStrength;
+$("startCardio").onclick=startCardio;$("stopCardio").onclick=finishCardio;$("redoCardio").onclick=redoCardio;
+document.querySelectorAll("#difficulty button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#difficulty button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
+$("saveNote").onclick=saveNote;$("previewImport").onclick=importPreview;$("exportBtn").onclick=exportData;$("copyExport").onclick=async()=>{await navigator.clipboard.writeText($("exportText").value);alert("Chaîne copiée.")};$("testVoice").onclick=()=>announceRun(30,1,20);$("restoreProgram").onclick=restore;
+$("resetAll").onclick=()=>{if(confirm("Effacer programme, historique et notes?")){localStorage.removeItem(KEY);state=blank();save();render()}};
+render();
+})();
+</script>
 </body>
 </html>
