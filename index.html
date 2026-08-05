@@ -101,9 +101,9 @@ details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:2
 </main>
 
 <main id="transferView" class="hidden">
-<section class="card"><h2>Importer un programme de 7 jours</h2><p class="muted">Colle la chaîne que je te donnerai. L’app montre un aperçu avant de remplacer seulement les journées futures concernées.</p><textarea id="importText" placeholder="GP1.…"></textarea><button id="previewImport" class="primary">Lire le programme</button><div id="importPreview"></div></section>
-<section class="card"><h2>Exporter mon suivi</h2><p class="muted">Tu peux exporter n’importe quand. La chaîne contient le programme actif, les séances, les chronos, la difficulté et tes notes.</p><button id="exportBtn" class="primary">Créer la chaîne d’export</button><textarea id="exportText" readonly></textarea><button id="copyExport" class="secondary">Copier</button></section>
-<section class="card"><h2>Réglages</h2><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
+<section class="card"><h2>Importer un programme de 7 jours</h2><p class="muted">Colle une chaîne GP1. Elle peut contenir jusqu’à 7 jours complets de musculation et de cardio. L’app affiche un aperçu avant l’installation.</p><textarea id="importText" placeholder="GP1.…"></textarea><button id="previewImport" class="primary">Lire le programme</button><div id="importPreview"></div></section>
+<section class="card"><h2>Exporter mon suivi</h2><p class="muted">Tu peux exporter n’importe quand. La chaîne GX1 contient le programme actif, les séances, les chronos détaillés, les cycles, la difficulté, le poids et tes notes.</p><button id="exportBtn" class="primary">Créer la chaîne d’export</button><textarea id="exportText" readonly></textarea><button id="copyExport" class="secondary">Copier</button></section>
+<section class="card"><h2>Réglages</h2><div id="formatStatus" class="muted small"></div><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
 </main>
 </div>
 
@@ -261,13 +261,192 @@ function renderCharts(){
  if($("weightChart"))$("weightChart").innerHTML=lineChart(weightPoints(),"lb");
 }
 
-function b64e(obj){let s=JSON.stringify(obj),bytes=new TextEncoder().encode(s),bin="";bytes.forEach(x=>bin+=String.fromCharCode(x));return btoa(bin).replaceAll("+","-").replaceAll("/","_").replaceAll("=","")}
-function b64d(s){s=s.replaceAll("-","+").replaceAll("_","/");while(s.length%4)s+="=";let bin=atob(s),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}
-function importPreview(){
- try{let raw=$("importText").value.trim();if(!raw.startsWith("GP1."))throw Error("Préfixe invalide");let p=b64d(raw.slice(4));validateProgram(p);$("importPreview").innerHTML=`<p><strong>${p.days.length} jours</strong>, du ${p.days[0].date} au ${p.days.at(-1).date}.</p><button id=confirmImport class=primary>Installer ce programme</button>`;$("confirmImport").onclick=()=>{state.previousProgram=state.program;state.program=p;save();alert("Programme installé.");render()}}catch(e){$("importPreview").innerHTML=`<p style="color:#fca5a5">Chaîne invalide : ${e.message}</p>`}
+function canonical(obj){
+ if(Array.isArray(obj))return obj.map(canonical);
+ if(obj&&typeof obj==="object"){
+  const o={};
+  Object.keys(obj).sort().forEach(k=>{
+   if(obj[k]!==undefined)o[k]=canonical(obj[k]);
+  });
+  return o;
+ }
+ return obj;
 }
-function validateProgram(p){if(!p||p.version!==1||!Array.isArray(p.days)||p.days.length>7||!p.days.length)throw Error("format non reconnu");for(const d of p.days){if(!/^\d{4}-\d{2}-\d{2}$/.test(d.date))throw Error("date invalide");if(d.strength){if(![1,2,3].includes(d.strength.circuits))throw Error("circuits invalides");for(const [id,n] of d.strength.ex){if(!names[id]||n<1||n>200)throw Error("exercice invalide")}}}}
-function exportData(){let payload={version:1,exported:new Date().toISOString(),program:state.program,days:state.days};$("exportText").value="GX1."+b64e(payload)}
+function checksum(obj){
+ const s=JSON.stringify(canonical(obj));
+ let h=2166136261;
+ for(let i=0;i<s.length;i++){
+  h^=s.charCodeAt(i);
+  h=Math.imul(h,16777619);
+ }
+ return (h>>>0).toString(36);
+}
+function b64e(obj){
+ const bytes=new TextEncoder().encode(JSON.stringify(obj));
+ let bin="";
+ for(const x of bytes)bin+=String.fromCharCode(x);
+ return btoa(bin).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
+}
+function b64d(s){
+ s=s.replaceAll("-","+").replaceAll("_","/");
+ while(s.length%4)s+="=";
+ const bin=atob(s);
+ const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+ return JSON.parse(new TextDecoder().decode(bytes));
+}
+function makeEnvelope(kind,payload){
+ const body={format:kind,version:1,created:new Date().toISOString(),payload};
+ return {...body,check:checksum(body)};
+}
+function openEnvelope(raw,kind){
+ const prefix=kind+".";
+ if(!raw.startsWith(prefix))throw Error(`La chaîne doit commencer par ${prefix}`);
+ const env=b64d(raw.slice(prefix.length));
+ if(!env||env.format!==kind||env.version!==1)throw Error("Version ou format non reconnu");
+ const given=env.check;
+ const copy={...env};
+ delete copy.check;
+ if(given!==checksum(copy))throw Error("La chaîne est corrompue ou incomplète");
+ return env.payload;
+}
+function normalizeProgram(p){
+ if(!p||typeof p!=="object")throw Error("Programme absent");
+ return {
+  version:1,
+  start:p.start||"",
+  days:Array.isArray(p.days)?p.days.map(d=>({
+   date:d.date,
+   label:d.label||"",
+   strength:d.strength?{
+    circuits:Number(d.strength.circuits),
+    ex:Array.isArray(d.strength.ex)?d.strength.ex.map(item=>[item[0],Number(item[1])]):[]
+   }:null,
+   cardio:d.cardio?{
+    w:Number(d.cardio.w||0),
+    r:Number(d.cardio.r||0),
+    m:Number(d.cardio.m||0),
+    n:Number(d.cardio.n||0),
+    total:Number(d.cardio.total||0),
+    c:Number(d.cardio.c||0)
+   }:null
+  })):[]
+ };
+}
+function validateProgram(p){
+ if(!p||p.version!==1||!Array.isArray(p.days)||p.days.length<1||p.days.length>7){
+  throw Error("Le programme doit contenir de 1 à 7 jours");
+ }
+ const seen=new Set();
+ for(const d of p.days){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d.date))throw Error("Date invalide");
+  if(seen.has(d.date))throw Error("Deux journées ont la même date");
+  seen.add(d.date);
+  if(d.strength){
+   if(!Number.isInteger(d.strength.circuits)||d.strength.circuits<1||d.strength.circuits>4){
+    throw Error("Nombre de circuits invalide");
+   }
+   if(!Array.isArray(d.strength.ex)||!d.strength.ex.length)throw Error("Liste d’exercices vide");
+   for(const item of d.strength.ex){
+    if(!Array.isArray(item)||item.length!==2)throw Error("Exercice mal formé");
+    const [id,n]=item;
+    if(!names[id]||!Number.isFinite(n)||n<=0||n>300)throw Error(`Exercice invalide : ${id}`);
+   }
+  }
+  if(d.cardio){
+   const c=d.cardio;
+   for(const key of ["w","r","m","n","total","c"]){
+    if(!Number.isFinite(c[key])||c[key]<0)throw Error(`Valeur cardio invalide : ${key}`);
+   }
+   if(c.r>0){
+    if(c.m<=0||!Number.isInteger(c.n)||c.n<1||c.n>100)throw Error("Cycles cardio invalides");
+   }else if(c.total<=0){
+    throw Error("Durée du cardio facile invalide");
+   }
+  }
+ }
+ p.days.sort((a,b)=>a.date.localeCompare(b.date));
+ p.start=p.days[0].date;
+ return p;
+}
+function programSummary(p){
+ let strengthDays=0,cardioDays=0,totalCycles=0;
+ for(const d of p.days){
+  if(d.strength)strengthDays++;
+  if(d.cardio){
+   cardioDays++;
+   if(d.cardio.r>0)totalCycles+=d.cardio.n;
+  }
+ }
+ return {
+  strengthDays,
+  cardioDays,
+  totalCycles,
+  first:p.days[0].date,
+  last:p.days.at(-1).date
+ };
+}
+function importPreview(){
+ try{
+  const raw=$("importText").value.trim();
+  const p=validateProgram(normalizeProgram(openEnvelope(raw,"GP1")));
+  const s=programSummary(p);
+  $("importPreview").innerHTML=`
+   <p><strong>${p.days.length} jours</strong>, du ${s.first} au ${s.last}.</p>
+   <div class=summary><span>Musculation</span><strong>${s.strengthDays} jours</strong></div>
+   <div class=summary><span>Cardio</span><strong>${s.cardioDays} jours</strong></div>
+   <div class=summary><span>Cycles programmés</span><strong>${s.totalCycles}</strong></div>
+   <button id=confirmImport class=primary>Installer ce programme</button>`;
+  $("confirmImport").onclick=()=>{
+   state.previousProgram=state.program;
+   state.program=p;
+   save();
+   alert("Programme installé.");
+   render();
+  };
+ }catch(e){
+  $("importPreview").innerHTML=`<p style="color:#fca5a5">Chaîne invalide : ${e.message}</p>`;
+ }
+}
+function exportPayload(){
+ const orderedTracking={};
+ Object.keys(state.days).sort().forEach(k=>orderedTracking[k]=state.days[k]);
+ const weightEntries=Object.entries(state.days)
+  .filter(([,v])=>Number.isFinite(v.weight))
+  .sort((a,b)=>b[0].localeCompare(a[0]));
+ return {
+  appVersion:8,
+  exportedAt:new Date().toISOString(),
+  currentDate:todayKey(),
+  activeProgram:state.program,
+  previousProgram:state.previousProgram,
+  tracking:orderedTracking,
+  summary:{
+   completedStrength:Object.values(state.days).filter(v=>v.strengthDone).length,
+   completedCardio:Object.values(state.days).filter(v=>v.cardioDone).length,
+   earlyCardio:Object.values(state.days).filter(v=>v.cardioResult?.early).length,
+   latestWeight:weightEntries.length?weightEntries[0][1].weight:null
+  }
+ };
+}
+function exportData(){
+ const env=makeEnvelope("GX1",exportPayload());
+ $("exportText").value="GX1."+b64e(env);
+}
+function runFormatSelfTest(){
+ try{
+  const sample=validateProgram(normalizeProgram(state.program));
+  const encoded="GP1."+b64e(makeEnvelope("GP1",sample));
+  const decoded=validateProgram(normalizeProgram(openEnvelope(encoded,"GP1")));
+  const ok=JSON.stringify(canonical(sample))===JSON.stringify(canonical(decoded));
+  $("formatStatus").textContent=ok
+   ?"Formats GP1 et GX1 vérifiés : prêts."
+   :"Le test interne du format a échoué.";
+  return ok;
+ }catch(e){
+  $("formatStatus").textContent="Erreur du test interne : "+e.message;
+  return false;
+ }
+}
 function restore(){if(!state.previousProgram)return alert("Aucun programme précédent.");[state.program,state.previousProgram]=[state.previousProgram,state.program];save();render();alert("Programme précédent restauré.")}
 
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));["today","history","transfer"].forEach(v=>$(v+"View").classList.toggle("hidden",v!==b.dataset.view));render()});
@@ -276,7 +455,7 @@ $("startCardio").onclick=startCardio;$("stopCardio").onclick=()=>finishCardio(fa
 document.querySelectorAll("#difficulty button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#difficulty button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
 $("saveNote").onclick=saveNote;$("exerciseChartSelect").onchange=renderCharts;$("previewImport").onclick=importPreview;$("exportBtn").onclick=exportData;$("copyExport").onclick=async()=>{await navigator.clipboard.writeText($("exportText").value);alert("Chaîne copiée.")};$("restoreProgram").onclick=restore;
 $("resetAll").onclick=()=>{if(confirm("Effacer programme, historique et notes?")){localStorage.removeItem(KEY);state=blank();save();render()}};
-render();
+render();runFormatSelfTest();
 })();
 </script>
 </body>
