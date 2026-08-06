@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Fentes arrière">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <circle cx="319" cy="66" r="25" fill="#f8fafc" stroke="none"/>
+      <path d="M319 98v112"/>
+      <path d="M319 128l-74 46"/>
+      <path d="M319 128l76 38"/>
+      <path d="M319 210l-85 45"/>
+      <path d="M234 255l-79 43"/>
+      <path d="M319 210l85 56"/>
+      <path d="M404 266h91"/>
+      <path d="M132 303h390"/>
+    
+  </g>
+</svg>

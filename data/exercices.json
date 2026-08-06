@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "exercises": {
+    "p": {
+      "name": "Pompes",
+      "chartName": "Pompes",
+      "measure": "repetitions",
+      "equipment": "Aucun",
+      "instruction": "Garde le corps droit et environ deux répétitions propres en réserve.",
+      "technique": "Corps droit, mains stables et répétitions propres.",
+      "audio": {
+        "plural": [
+          "pompes"
+        ],
+        "countPosition": "before"
+      },
+      "previewImage": "images/exercices/pompes.svg"
+    },
+    "s": {
+      "name": "Accroupissements",
+      "chartName": "Accroupissements",
+      "measure": "repetitions",
+      "equipment": "Aucun",
+      "instruction": "Descends de façon contrôlée, sans rebondir.",
+      "technique": "Hanches vers l’arrière, genoux dans la direction des orteils et talons au sol.",
+      "audio": {
+        "plural": [
+          "accroupissements"
+        ],
+        "countPosition": "before"
+      },
+      "previewImage": "images/exercices/accroupissements.svg"
+    },
+    "u": {
+      "name": "Extensions dorsales au sol",
+      "chartName": "Extensions dorsales",
+      "measure": "repetitions",
+      "equipment": "Aucun",
+      "instruction": "Lève doucement les bras et les jambes, sans élan ni tension dans le cou.",
+      "technique": "Mouvement lent au sol, sans forcer le cou ni cambrer brusquement.",
+      "audio": {
+        "plural": [
+          "extensions",
+          "dorsales",
+          "au",
+          "sol"
+        ],
+        "countPosition": "before"
+      },
+      "previewImage": "images/exercices/extensions-dorsales.svg"
+    },
+    "l": {
+      "name": "Fentes arrière par jambe",
+      "chartName": "Fentes arrière",
+      "measure": "repetitions",
+      "equipment": "Aucun",
+      "instruction": "Reste stable et recule une jambe à la fois.",
+      "technique": "Privilégie la stabilité et le contrôle avant la profondeur.",
+      "audio": {
+        "plural": [
+          "fentes",
+          "arriere",
+          "par",
+          "jambe"
+        ],
+        "countPosition": "before"
+      },
+      "previewImage": "images/exercices/fentes.svg"
+    },
+    "d": {
+      "name": "Répulsions entre deux chaises",
+      "chartName": "Répulsions",
+      "measure": "repetitions",
+      "equipment": "Deux chaises très stables",
+      "instruction": "Utilise des chaises parfaitement stables, idéalement bloquées contre un mur, et garde une amplitude modeste.",
+      "technique": "Chaises immobiles, épaules confortables et amplitude contrôlée.",
+      "audio": {
+        "plural": [
+          "repulsions",
+          "entre",
+          2,
+          "chaises"
+        ],
+        "countPosition": "before"
+      },
+      "previewImage": "images/exercices/repulsions.svg"
+    },
+    "b": {
+      "name": "Ponts fessiers",
+      "chartName": "Ponts fessiers",
+      "measure": "repetitions",
+      "equipment": "Aucun",
+      "instruction": "Serre les fessiers en haut du mouvement.",
+      "technique": "Pieds stables, montée contrôlée et contraction des fessiers en haut.",
+      "audio": {
+        "plural": [
+          "ponts",
+          "fessiers"
+        ],
+        "countPosition": "before"
+      },
+      "previewImage": "images/exercices/ponts-fessiers.svg"
+    },
+    "k": {
+      "name": "Planche",
+      "chartName": "Planche",
+      "measure": "seconds",
+      "equipment": "Aucun",
+      "instruction": "Garde le corps droit et arrête avant que le bas du dos s’affaisse.",
+      "technique": "Abdominaux engagés, bassin neutre et respiration régulière.",
+      "audio": {
+        "plural": [
+          "planche"
+        ],
+        "countPosition": "after"
+      },
+      "previewImage": "images/exercices/planche.svg"
+    },
+    "chin": {
+      "name": "Tractions en supination",
+      "chartName": "Tractions en supination",
+      "measure": "repetitions",
+      "equipment": "Barre de porte",
+      "instruction": "Paumes tournées vers toi. Monte sans élan et redescends lentement. Utilise seulement une barre installée solidement selon les instructions du fabricant.",
+      "technique": "Prise en supination, épaules contrôlées, aucun balancement et descente lente.",
+      "audio": {
+        "singular": [
+          "traction",
+          "en",
+          "supination"
+        ],
+        "plural": [
+          "tractions",
+          "en",
+          "supination"
+        ],
+        "countPosition": "before",
+        "gender": "feminine"
+      },
+      "previewImage": "images/exercices/tractions-supination.svg"
+    },
+    "pull": {
+      "name": "Tractions en pronation",
+      "chartName": "Tractions en pronation",
+      "measure": "repetitions",
+      "equipment": "Barre de porte",
+      "instruction": "Paumes tournées vers l’extérieur. Monte sans élan et redescends lentement. Utilise seulement une barre installée solidement selon les instructions du fabricant.",
+      "technique": "Prise en pronation, corps stable, aucun balancement et descente contrôlée.",
+      "audio": {
+        "singular": [
+          "traction",
+          "en",
+          "pronation"
+        ],
+        "plural": [
+          "tractions",
+          "en",
+          "pronation"
+        ],
+        "countPosition": "before",
+        "gender": "feminine"
+      },
+      "previewImage": "images/exercices/tractions-pronation.svg"
+    }
+  }
+}

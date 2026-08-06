@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Tractions en pronation">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <path d="M120 65h400"/>
+      <circle cx="320" cy="135" r="25" fill="#f8fafc" stroke="none"/>
+      <path d="M320 160v97"/>
+      <path d="M320 176l-115-92"/>
+      <path d="M320 176l115-92"/>
+      <path d="M320 257l-63 64"/>
+      <path d="M320 257l63 64"/>
+      <path d="M192 66l32 18M448 66l-32 18"/>
+    
+  </g>
+</svg>

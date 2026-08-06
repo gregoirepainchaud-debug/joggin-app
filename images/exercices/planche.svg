@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Planche">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <circle cx="475" cy="151" r="24" fill="#f8fafc" stroke="none"/>
+      <path d="M155 203l254-7 66-21"/>
+      <path d="M410 196l34 72"/>
+      <path d="M180 202l-29 69"/>
+      <path d="M124 276h390"/>
+    
+  </g>
+</svg>

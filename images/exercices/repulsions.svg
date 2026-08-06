@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Répulsions entre deux chaises">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <path d="M130 122v173M510 122v173"/>
+      <path d="M105 122h82M453 122h82"/>
+      <circle cx="320" cy="93" r="24" fill="#f8fafc" stroke="none"/>
+      <path d="M320 121v96"/>
+      <path d="M320 142l-134 5"/>
+      <path d="M320 142l134 5"/>
+      <path d="M320 217l-64 66"/>
+      <path d="M320 217l64 66"/>
+      <path d="M118 301h404"/>
+    
+  </g>
+</svg>

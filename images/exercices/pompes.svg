@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Pompes">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <circle cx="472" cy="133" r="25" fill="#f8fafc" stroke="none"/>
+      <path d="M120 242h380"/>
+      <path d="M180 194l205 22 87-52"/>
+      <path d="M239 201l-34 65"/>
+      <path d="M389 216l-9 61"/>
+      <path d="M168 194l-56 48"/>
+      <path d="M472 158l34 33"/>
+    
+  </g>
+</svg>

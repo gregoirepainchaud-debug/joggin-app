@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Ponts fessiers">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <path d="M100 284h440"/>
+      <circle cx="158" cy="239" r="23" fill="#f8fafc" stroke="none"/>
+      <path d="M181 238l120-67 116 31"/>
+      <path d="M300 171l75 105"/>
+      <path d="M417 202l74 75"/>
+      <path d="M162 263l72 19"/>
+    
+  </g>
+</svg>

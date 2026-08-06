@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Accroupissements">
+  <rect width="640" height="360" rx="34" fill="#0b1220"/>
+  <g stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+      <circle cx="320" cy="72" r="27" fill="#f8fafc" stroke="none"/>
+      <path d="M320 105v80"/>
+      <path d="M320 130l-76 42"/>
+      <path d="M320 130l76 42"/>
+      <path d="M320 185l-78 45"/>
+      <path d="M242 230l-58 56"/>
+      <path d="M320 185l78 45"/>
+      <path d="M398 230l58 56"/>
+      <path d="M170 292h300"/>
+    
+  </g>
+</svg>
