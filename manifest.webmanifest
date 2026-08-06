@@ -1,7 +1,9 @@
 {
-  "name": "Mon entraînement",
-  "short_name": "Entraînement",
+  "name": "Mon entraînement — V.13.0",
+  "short_name": "Entraînement 13",
+  "description": "Application de renforcement musculaire et de marche/course par intervalles.",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#111827",
@@ -16,6 +18,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "scope": "./"
+  ]
 }
