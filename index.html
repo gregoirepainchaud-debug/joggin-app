@@ -4,116 +4,377 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111827">
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Entraînement">
+<meta name="apple-mobile-web-app-title" content="Entraînement 13">
+
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="logobicep.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Mon entraînement - V.13.0</title>
+
+<title>Mon entraînement — V.13.0</title>
+
 <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 <div class="wrap">
-<div class="head"><img src="logobicep.png" class="logo" alt=""><div><h1>Mon entraînement - V.13.0</h1><div class="muted">Renforcement · marche/course par cycles · suivi hebdomadaire</div></div></div>
-<div class="tabs"><button class="tab active" data-view="today">Aujourd’hui</button><button class="tab" data-view="history">Suivi</button><button class="tab" data-view="transfer">Importer / exporter</button></div>
+
+<div class="head">
+  <img src="logobicep.png" class="logo" alt="">
+  <div>
+    <h1>Mon entraînement — V.13.0</h1>
+    <div class="muted">
+      Renforcement · marche/course par cycles · suivi hebdomadaire
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-view="today">Aujourd’hui</button>
+  <button class="tab" data-view="history">Suivi</button>
+  <button class="tab" data-view="transfer">Importer / exporter</button>
+</div>
 
 <main id="todayView">
+
 <section id="resumeSessionBanner" class="resumeBanner hidden" aria-live="polite">
   <div>
     <strong id="resumeSessionTitle">Séance en cours</strong>
     <div id="resumeSessionText" class="small muted"></div>
   </div>
-  <button id="resumeAudioBtn" class="primary" type="button">Réactiver l’audio</button>
+
+  <button id="resumeAudioBtn" class="primary" type="button">
+    Réactiver l’audio
+  </button>
 </section>
+
 <section class="card">
-<div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><div><h2 id="dateTitle"></h2><div id="dayLabel" class="muted"></div></div><span id="programBadge" class="badge">Programme</span></div>
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
+    <div>
+      <h2 id="dateTitle"></h2>
+      <div id="dayLabel" class="muted"></div>
+    </div>
+
+    <span id="programBadge" class="badge">Programme</span>
+  </div>
 </section>
 
 <section class="card" id="strengthCard">
-<h2>Renforcement</h2>
-<div id="strengthNone" class="muted hidden">Aucun renforcement prévu aujourd’hui.</div>
-<div id="strengthReady">
-<p id="strengthSummary" class="muted"></p>
-<button id="startStrength" class="startLauncher strengthLauncher" type="button">
-  <img src="logobicep.png" alt="" class="startLauncherIcon">
-  <span class="startLauncherText">
-    <strong>Débuter les exercices</strong>
-    <small>Renforcement musculaire</small>
-  </span>
-</button>
-</div>
-<div id="strengthActive" class="hidden">
-<div class="timerGrid"><div class="timerBox"><div class="label">Temps total</div><div id="strengthTotal" class="time gold">00:00</div></div><div class="timerBox"><div id="strengthPhaseLabel" class="label">Exercice</div><div id="strengthPhase" class="time blue">00:00</div></div></div>
-<div class="progress"><div id="strengthProgress"></div></div>
-<div id="strengthExercise" class="exercise"></div>
-<p id="strengthInstruction" class="muted"></p>
-<div id="strengthCounter" class="small muted"></div>
-<div id="nextExercisePreview" class="nextExercisePreview hidden" aria-live="polite">
-  <div class="nextExercisePreviewHeader">Prochain exercice</div>
-  <img id="nextExerciseImage" class="nextExerciseImage" src="" alt="">
-  <div id="nextExerciseName" class="nextExerciseName"></div>
-  <div id="nextExerciseTarget" class="nextExerciseTarget"></div>
-  <p id="nextExerciseInstruction" class="muted small"></p>
-</div>
-<button id="strengthAction" class="primary">Repos</button><button id="cancelStrength" class="outline">Annuler la séance</button>
-</div>
-<div id="strengthDone" class="hidden"><div class="exercise" style="text-align:center">Séance terminée 🎉</div><div id="strengthStats"></div><button id="redoStrength" class="secondary">Refaire la séance</button></div>
+  <h2>Renforcement</h2>
+
+  <div id="strengthNone" class="muted hidden">
+    Aucun renforcement prévu aujourd’hui.
+  </div>
+
+  <div id="strengthReady">
+    <p id="strengthSummary" class="muted"></p>
+
+    <button id="startStrength" class="startLauncher strengthLauncher" type="button">
+      <img src="logobicep.png" alt="" class="startLauncherIcon">
+
+      <span class="startLauncherText">
+        <strong>Débuter les exercices</strong>
+        <small>Renforcement musculaire</small>
+      </span>
+    </button>
+  </div>
+
+  <div id="strengthActive" class="hidden">
+
+    <div class="timerGrid">
+      <div class="timerBox">
+        <div class="label">Temps total</div>
+        <div id="strengthTotal" class="time gold">00:00</div>
+      </div>
+
+      <div class="timerBox">
+        <div id="strengthPhaseLabel" class="label">Exercice</div>
+        <div id="strengthPhase" class="time blue">00:00</div>
+      </div>
+    </div>
+
+    <div class="progress">
+      <div id="strengthProgress"></div>
+    </div>
+
+    <div id="strengthExercise" class="exercise"></div>
+
+    <p id="strengthInstruction" class="muted"></p>
+
+    <div id="strengthCounter" class="small muted"></div>
+
+    <div
+      id="nextExercisePreview"
+      class="nextExercisePreview hidden"
+      aria-live="polite"
+    >
+      <div class="nextExercisePreviewHeader">Prochain exercice</div>
+
+      <img
+        id="nextExerciseImage"
+        class="nextExerciseImage"
+        src=""
+        alt=""
+      >
+
+      <div id="nextExerciseName" class="nextExerciseName"></div>
+
+      <div id="nextExerciseTarget" class="nextExerciseTarget"></div>
+
+      <p id="nextExerciseInstruction" class="muted small"></p>
+    </div>
+
+    <button id="strengthAction" class="primary">
+      Repos
+    </button>
+
+    <button id="cancelStrength" class="outline">
+      Annuler la séance
+    </button>
+  </div>
+
+  <div id="strengthDone" class="hidden">
+    <div class="exercise" style="text-align:center">
+      Séance terminée 🎉
+    </div>
+
+    <div id="strengthStats"></div>
+
+    <button id="redoStrength" class="secondary">
+      Refaire la séance
+    </button>
+  </div>
 </section>
 
 <section class="card" id="cardioCard">
-<h2>Marche / course</h2>
-<div id="cardioNone" class="muted hidden">Aucun cardio prévu aujourd’hui.</div>
-<div id="cardioReady">
-<div id="cardioPrescription"></div>
-<button id="startCardio" class="startLauncher cardioLauncher" type="button">
-  <span class="startLauncherPicture">
-    <img id="runnerLauncherIcon" src="IconeCoureur.png" alt="" class="startLauncherIcon">
-  </span>
-  <span class="startLauncherText">
-    <strong>Débuter la marche/course</strong>
-    <small>Cardio par intervalles</small>
-  </span>
-</button>
-</div>
-<div id="cardioActive" class="hidden">
-<div class="timerGrid"><div class="timerBox"><div class="label">Temps total</div><div id="cardioTotal" class="time gold">00:00</div></div><div class="timerBox"><div class="label">Temps restant</div><div id="cardioRemaining" class="time blue">00:00</div></div></div>
-<div id="cardioPhase" class="phase warm">Échauffement</div>
-<button id="earlyCardio" class="secondary">Terminé plus tôt</button><button id="stopCardio" class="danger">Terminer maintenant</button>
-</div>
-<div id="cardioDone" class="hidden"><div class="exercise" style="text-align:center">Cardio terminé ✓</div><div id="cardioStats"></div><button id="redoCardio" class="secondary">Refaire le cardio</button></div>
+  <h2>Marche / course</h2>
+
+  <div id="cardioNone" class="muted hidden">
+    Aucun cardio prévu aujourd’hui.
+  </div>
+
+  <div id="cardioReady">
+    <div id="cardioPrescription"></div>
+
+    <button id="startCardio" class="startLauncher cardioLauncher" type="button">
+      <span class="startLauncherPicture">
+        <img
+          id="runnerLauncherIcon"
+          src="IconeCoureur.png"
+          alt=""
+          class="startLauncherIcon"
+        >
+      </span>
+
+      <span class="startLauncherText">
+        <strong>Débuter la marche/course</strong>
+        <small>Cardio par intervalles</small>
+      </span>
+    </button>
+  </div>
+
+  <div id="cardioActive" class="hidden">
+
+    <div class="timerGrid">
+      <div class="timerBox">
+        <div class="label">Temps total</div>
+        <div id="cardioTotal" class="time gold">00:00</div>
+      </div>
+
+      <div class="timerBox">
+        <div class="label">Temps restant</div>
+        <div id="cardioRemaining" class="time blue">00:00</div>
+      </div>
+    </div>
+
+    <div id="cardioPhase" class="phase warm">
+      Échauffement
+    </div>
+
+    <button id="earlyCardio" class="secondary">
+      Terminé plus tôt
+    </button>
+
+    <button id="stopCardio" class="danger">
+      Terminer maintenant
+    </button>
+  </div>
+
+  <div id="cardioDone" class="hidden">
+    <div class="exercise" style="text-align:center">
+      Cardio terminé ✓
+    </div>
+
+    <div id="cardioStats"></div>
+
+    <button id="redoCardio" class="secondary">
+      Refaire le cardio
+    </button>
+  </div>
 </section>
 
 <section class="card">
-<h2>Comment ça s’est passé?</h2>
-<div class="rating" id="difficulty"><button data-v="1">Facile</button><button data-v="2">Correct</button><button data-v="3">Difficile</button></div>
-<label for="weight">Poids facultatif (lb)</label><input id="weight" type="number" inputmode="decimal" min="50" max="500" step="0.1" placeholder="Ex. 190"><label for="note">Note de la journée</label><textarea id="note" placeholder="Ex.: jambes plus sollicitées, reflux pendant la course, bonne énergie…"></textarea>
-<button id="saveNote" class="secondary">Sauvegarder la note</button>
+  <h2>Comment ça s’est passé?</h2>
+
+  <div class="rating" id="difficulty">
+    <button data-v="1">Facile</button>
+    <button data-v="2">Correct</button>
+    <button data-v="3">Difficile</button>
+  </div>
+
+  <label for="weight">Poids facultatif (lb)</label>
+
+  <input
+    id="weight"
+    type="number"
+    inputmode="decimal"
+    min="50"
+    max="500"
+    step="0.1"
+    placeholder="Ex. 190"
+  >
+
+  <label for="note">Note de la journée</label>
+
+  <textarea
+    id="note"
+    placeholder="Ex.: jambes plus sollicitées, reflux pendant la course, bonne énergie…"
+  ></textarea>
+
+  <button id="saveNote" class="secondary">
+    Sauvegarder la note
+  </button>
 </section>
+
 </main>
 
 <main id="historyView" class="hidden">
+
 <section class="card">
-<h2>Progression par exercice</h2>
-<label for="exerciseChartSelect">Exercice</label>
-<select id="exerciseChartSelect"></select>
-<div id="exerciseChart" class="chartWrap"></div>
+  <h2>Progression par exercice</h2>
+
+  <label for="exerciseChartSelect">Exercice</label>
+
+  <select id="exerciseChartSelect"></select>
+
+  <div id="exerciseChart" class="chartWrap"></div>
 </section>
-<section class="card"><h2>Progression du poids</h2><div id="weightChart" class="chartWrap"></div></section>
-<section class="card"><h2>Historique</h2><div id="historyList"></div></section>
-<section class="card"><details><summary>Technique des exercices</summary><ul id="exerciseTechniqueList"></ul></details></section>
+
+<section class="card">
+  <h2>Progression du poids</h2>
+  <div id="weightChart" class="chartWrap"></div>
+</section>
+
+<section class="card">
+  <h2>Historique</h2>
+  <div id="historyList"></div>
+</section>
+
+<section class="card">
+  <details>
+    <summary>Technique des exercices</summary>
+    <ul id="exerciseTechniqueList"></ul>
+  </details>
+</section>
+
 </main>
 
 <main id="transferView" class="hidden">
-<section class="card"><h2>Importer un programme de 7 jours</h2><p class="muted">Colle une chaîne GP1. Elle peut contenir jusqu’à 7 jours complets de musculation et de cardio. L’app affiche un aperçu avant l’installation.</p><textarea id="importText" placeholder="GP1.…"></textarea><button id="previewImport" class="primary">Lire le programme</button><div id="importPreview"></div></section>
-<section class="card"><h2>Exporter mon suivi</h2><p class="muted">Tu peux exporter n’importe quand. La chaîne GX1 contient le programme actif, les séances, les chronos détaillés, les cycles, la difficulté, le poids et tes notes.</p><button id="exportBtn" class="primary">Créer la chaîne d’export</button><textarea id="exportText" readonly></textarea><button id="copyExport" class="secondary">Copier</button></section>
-<section class="card"><h2>Réglages</h2>
-<div id="catalogStatus" class="muted small"></div><div id="formatStatus" class="muted small" style="margin-top:6px"></div>
-<div id="audioStatus" class="muted small" style="margin-top:6px">Audio local : sera vérifié au premier démarrage.</div>
-<div id="storageStatus" class="muted small" style="margin-top:6px"></div>
-<div id="offlineStatus" class="muted small" style="margin-top:6px"></div>
-<button id="testAudio" class="secondary">Tester la cloche et la voix</button><button id="restoreProgram" class="secondary">Revenir au programme précédent</button><button id="resetAll" class="danger">Effacer toutes les données</button></section>
+
+<section class="card">
+  <h2>Importer un programme de 7 jours</h2>
+
+  <p class="muted">
+    Colle une chaîne GP1. Elle peut contenir jusqu’à 7 jours complets
+    de musculation et de cardio. L’app affiche un aperçu avant
+    l’installation.
+  </p>
+
+  <textarea id="importText" placeholder="GP1.…"></textarea>
+
+  <button id="previewImport" class="primary">
+    Lire le programme
+  </button>
+
+  <div id="importPreview"></div>
+</section>
+
+<section class="card">
+  <h2>Exporter mon suivi</h2>
+
+  <p class="muted">
+    Tu peux exporter n’importe quand. La chaîne GX1 contient le
+    programme actif, les séances, les chronos détaillés, les cycles,
+    la difficulté, le poids et tes notes.
+  </p>
+
+  <button id="exportBtn" class="primary">
+    Créer la chaîne d’export
+  </button>
+
+  <textarea id="exportText" readonly></textarea>
+
+  <button id="copyExport" class="secondary">
+    Copier
+  </button>
+</section>
+
+<section class="card">
+  <h2>Réglages</h2>
+
+  <div id="catalogStatus" class="muted small"></div>
+
+  <div
+    id="formatStatus"
+    class="muted small"
+    style="margin-top:6px"
+  ></div>
+
+  <div
+    id="audioStatus"
+    class="muted small"
+    style="margin-top:6px"
+  >
+    Audio local : sera vérifié au premier démarrage.
+  </div>
+
+  <div
+    id="storageStatus"
+    class="muted small"
+    style="margin-top:6px"
+  ></div>
+
+  <div
+    id="offlineStatus"
+    class="muted small"
+    style="margin-top:6px"
+  ></div>
+
+  <button id="testAudio" class="secondary">
+    Tester la cloche et la voix
+  </button>
+
+  <button id="restoreProgram" class="secondary">
+    Revenir au programme précédent
+  </button>
+
+  <button id="resetAll" class="danger">
+    Effacer toutes les données
+  </button>
+</section>
+
 </main>
+
+</div>
+
+<div
+  id="versionBadge"
+  class="versionBadge"
+  aria-label="Version de l’application"
+>
+  V.13.0
 </div>
 
 <script type="module" src="js/app.js"></script>
