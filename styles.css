@@ -1,0 +1,121 @@
+:root{--bg:#0f172a;--card:#111827;--line:#334155;--text:#f8fafc;--muted:#cbd5e1;--green:#22c55e;--blue:#38bdf8;--gold:#fbbf24;--red:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0f172a,#111827);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:18px 16px 52px}.head{display:flex;gap:12px;align-items:center}.logo{width:58px;height:58px;border-radius:15px}
+h1{font-size:1.7rem;margin:0}h2{font-size:1.22rem;margin:0 0 13px}p{line-height:1.45}.muted{color:var(--muted)}.small{font-size:.9rem}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;position:sticky;top:0;padding:8px 0;background:#0f172aeF;z-index:5}
+.tab{padding:11px 5px;border-radius:12px;border:1px solid var(--line);background:#1e293b;color:white;font-weight:800}.tab.active{background:var(--green);color:#052e16}
+.card{background:#111827f7;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;box-shadow:0 12px 28px #0004}
+.hidden{display:none!important}.badge{display:inline-block;border:1px solid #166534;background:#052e16;color:#bbf7d0;border-radius:999px;padding:5px 9px;font-weight:800;font-size:.86rem}
+button{width:100%;border:0;border-radius:14px;padding:15px;font-size:1rem;font-weight:850;margin-top:11px}.primary{background:var(--green);color:#052e16}.secondary{background:#334155;color:white}.danger{background:#7f1d1d;color:#fee2e2}.outline{background:transparent;color:white;border:1px solid #475569}
+.timerGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.timerBox{background:#0b1220;border:1px solid #263244;border-radius:14px;padding:12px;text-align:center}.label{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:800}.time{font-size:2rem;font-weight:900;font-variant-numeric:tabular-nums}.gold{color:var(--gold)}.blue{color:var(--blue)}
+.exercise{font-size:1.9rem;font-weight:900;margin:17px 0 7px}.phase{font-size:1.8rem;font-weight:900;text-align:center;margin:12px 0}.phase.run{color:#fb7185}.phase.walk{color:#4ade80}.phase.warm{color:#fbbf24}
+.progress{height:11px;border-radius:999px;background:#0b1220;overflow:hidden;border:1px solid #263244;margin:12px 0}.progress>div{height:100%;background:var(--green);width:0}
+input,textarea,select{width:100%;background:#0b1220;color:white;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:1rem}textarea{min-height:110px}
+label{display:block;color:var(--muted);font-weight:750;margin:11px 0 6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.history{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #263244;padding:9px 0}
+.rating{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.rating button{margin:0;padding:11px;background:#334155;color:white}.rating button.selected{background:var(--green);color:#052e16}
+.summary{display:flex;justify-content:space-between;border-bottom:1px solid #263244;padding:8px 0}
+details{margin-top:10px}summary{cursor:pointer;font-weight:800}ul{padding-left:21px}li{margin:.45rem 0}
+.chartWrap{margin-top:14px;background:#0b1220;border:1px solid #263244;border-radius:14px;padding:12px;overflow:hidden}
+.chartWrap svg{display:block;width:100%;height:auto}.chartEmpty{padding:22px 8px;text-align:center;color:#94a3b8}
+.chartLabel{font-size:11px;fill:#94a3b8}.chartValue{font-size:11px;fill:#f8fafc;font-weight:700}
+.chartLine{fill:none;stroke:#22c55e;stroke-width:3}.chartDot{fill:#22c55e}.chartGrid{stroke:#334155;stroke-width:1}
+.controlRow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+.startLauncher{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:14px;
+  min-height:78px;
+  padding:10px 16px 10px 10px;
+  text-align:left;
+  background:var(--green);
+  color:#052e16;
+  border:2px solid transparent;
+  touch-action:manipulation;
+}
+.startLauncher:active{transform:translateY(1px)}
+.startLauncher:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.startLauncherIcon{
+  width:58px;
+  height:58px;
+  flex:0 0 58px;
+  border-radius:14px;
+  object-fit:cover;
+  background:#0b1220;
+}
+.startLauncherPicture{display:flex;flex:0 0 58px}
+.startLauncherText{display:flex;flex-direction:column;gap:3px}
+.startLauncherText strong{font-size:1.08rem}
+.startLauncherText small{font-size:.86rem;font-weight:700;opacity:.78}
+.cardioLauncher{background:var(--blue);color:#082f49}
+.strengthLauncher{background:var(--green);color:#052e16}
+
+.nextExercisePreview{
+  margin-top:16px;
+  padding:14px;
+  border:1px solid #334155;
+  border-radius:16px;
+  background:#0b1220;
+  text-align:center;
+}
+.nextExercisePreviewHeader{
+  margin-bottom:10px;
+  color:var(--gold);
+  font-size:.8rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.nextExerciseImage{
+  display:block;
+  width:min(100%,420px);
+  max-height:220px;
+  margin:0 auto 12px;
+  border-radius:14px;
+  object-fit:contain;
+  background:#0b1220;
+}
+.nextExerciseName{font-size:1.28rem;font-weight:900}
+.nextExerciseTarget{margin-top:4px;color:var(--blue);font-size:1.05rem;font-weight:850}
+.nextExercisePreview p{margin:9px auto 0;max-width:520px}
+@media (max-width:420px){
+  .startLauncherIcon{width:52px;height:52px;flex-basis:52px}
+  .startLauncherPicture{flex-basis:52px}
+  .startLauncherText strong{font-size:1rem}
+  .nextExerciseImage{max-height:180px}
+}
+
+.resumeBanner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-top:14px;
+  padding:14px 16px;
+  border:1px solid #475569;
+  border-radius:16px;
+  background:#172033;
+}
+.resumeBanner button{width:auto;min-width:150px;margin:0}
+.versionBadge{
+  position:fixed;
+  right:max(10px,env(safe-area-inset-right));
+  bottom:max(8px,env(safe-area-inset-bottom));
+  z-index:20;
+  padding:3px 7px;
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:8px;
+  background:rgba(15,23,42,.72);
+  color:rgba(203,213,225,.68);
+  font-size:.72rem;
+  font-weight:750;
+  letter-spacing:.04em;
+  backdrop-filter:blur(5px);
+  pointer-events:none;
+}
+.statusOk{color:#86efac}.statusWarn{color:#fde68a}
+@media (max-width:520px){
+  .resumeBanner{align-items:stretch;flex-direction:column}
+  .resumeBanner button{width:100%}
+}
