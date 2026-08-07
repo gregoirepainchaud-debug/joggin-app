@@ -206,33 +206,54 @@ function renderResumeBanner(){
    APERÇU DU RENFORCEMENT AVANT LE DÉMARRAGE
 --------------------------------------------------------- */
 
-function previewExerciseName(exercise){
-  const definition=exerciseDefinition(exercise.id);
+function previewExerciseId(exercise){
+  return Array.isArray(exercise)
+    ?exercise[0]
+    :exercise?.id;
+}
 
-  if(!definition)return exercise.id;
+function previewExerciseCount(exercise){
+  return Array.isArray(exercise)
+    ?exercise[1]
+    :exercise?.n;
+}
+
+function previewExerciseName(exercise){
+  const id=previewExerciseId(exercise);
+  const definition=exerciseDefinition(id);
+
+  if(!definition)return id||"Exercice";
 
   return definition.chartName||definition.name;
 }
 
 function previewExerciseTarget(exercise){
-  const definition=exerciseDefinition(exercise.id);
+  const id=previewExerciseId(exercise);
+  const count=previewExerciseCount(exercise);
+  const definition=exerciseDefinition(id);
 
-  if(!definition)return String(exercise.n);
+  if(count===undefined||count===null){
+    return "";
+  }
+
+  if(!definition){
+    return String(count);
+  }
 
   if(definition.measure==="seconds"){
-    return `${exercise.n} s`;
+    return `${count} s`;
   }
 
   if((definition.name||"").toLowerCase().includes("par jambe")){
-    return `${exercise.n} / jambe`;
+    return `${count} / jambe`;
   }
 
-  return `${exercise.n} rép.`;
+  return `${count} rép.`;
 }
 
 function strengthPreviewHtml(strength){
-  const exercises=strength.ex||[];
-  const circuits=strength.circuits||1;
+  const exercises=Array.isArray(strength?.ex)?strength.ex:[];
+  const circuits=Number(strength?.circuits)||1;
 
   const rows=exercises.map(exercise=>`
     <div class="workoutPreviewRow">
