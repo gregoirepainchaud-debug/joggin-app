@@ -579,55 +579,79 @@ async function preloadStrengthSession(session){
 async function startStrength(){
   if(state.activeSession)return;
 
-  const unlock=audio.createContextFromGesture();
-
   const {k,plan}=currentContext();
   const sequence=sequenceForStrength(plan);
 
   if(!sequence.length)return;
 
-  $("startStrength").disabled=true;
+  const button=$("startStrength");
+  const label=button.querySelector("strong");
 
-  $("startStrength")
-    .querySelector("strong")
-    .textContent="Préparation de l’audio…";
+  button.disabled=true;
+  label.textContent="Préparation de l’audio…";
 
-  await unlock;
-  await storage.requestPersistence();
+  try{
+    /*
+     * Doit être appelé directement depuis le clic de l'utilisateur.
+     * Le moteur configure aussi la session iOS en mode transient afin
+     * de mieux cohabiter avec Spotify.
+     */
+    await audio.createContextFromGesture();
+    await storage.requestPersistence();
 
-  const now=Date.now();
+    const now=Date.now();
 
-  const session={
-    id:createSessionId(),
-    type:"strength",
-    programDate:k,
-    startedAt:now,
-    phase:"exercise",
-    phaseStartedAt:now,
-    index:0,
-    exerciseDurations:[],
-    restDurations:[],
-    sequence,
-    circuits:plan.strength.circuits,
-    restored:false
-  };
+    const session={
+      id:createSessionId(),
+      type:"strength",
+      programDate:k,
+      startedAt:now,
+      phase:"exercise",
+      phaseStartedAt:now,
+      index:0,
+      exerciseDurations:[],
+      restDurations:[],
+      sequence,
+      circuits:plan.strength.circuits,
+      restored:false
+    };
 
-  await preloadStrengthSession(session);
+    await preloadStrengthSession(session);
 
-  state.activeSession=session;
-  audioReadyForSession=true;
+    state.activeSession=session;
+    audioReadyForSession=true;
 
-  save();
-  requestWake();
-  render();
+    save();
+    requestWake();
+    render();
 
-  void audio.play(
-    strengthExerciseTokens(
-      sequence[0],
-      session.circuits
-    ),
-    {bell:true}
-  );
+    void audio.play(
+      strengthExerciseTokens(
+        sequence[0],
+        session.circuits
+      ),
+      {bell:true}
+    );
+  }catch(error){
+    console.error(
+      "Échec du démarrage audio de la musculation",
+      error
+    );
+
+    audioReadyForSession=false;
+
+    button.disabled=false;
+    label.textContent="Débuter les exercices";
+
+    if($("audioStatus")){
+      $("audioStatus").textContent=
+        "Audio non démarré. Réessaie avec le bouton Débuter.";
+    }
+
+    alert(
+      "L’audio n’a pas pu démarrer cette fois. La séance n’a pas été lancée : tu peux simplement réessayer."
+    );
+  }
 }
 
 function strengthAction(){
@@ -1159,77 +1183,99 @@ async function preloadCardio(config){
 async function startCardio(){
   if(state.activeSession)return;
 
-  const unlock=
-    audio.createContextFromGesture();
-
   const {k,plan}=currentContext();
 
   if(!plan?.cardio)return;
 
-  $("startCardio").disabled=true;
+  const button=$("startCardio");
+  const label=button.querySelector("strong");
 
-  $("startCardio")
-    .querySelector("strong")
-    .textContent=
-      "Préparation de l’audio…";
+  button.disabled=true;
+  label.textContent="Préparation de l’audio…";
 
-  await unlock;
-  await storage.requestPersistence();
+  try{
+    /*
+     * L'activation audio se fait immédiatement à partir du clic.
+     * En cas de conflit temporaire avec Spotify/iOS, le moteur possède
+     * maintenant un timeout et rend la main à l'utilisateur.
+     */
+    await audio.createContextFromGesture();
+    await storage.requestPersistence();
 
-  const config={
-    ...plan.cardio
-  };
+    const config={
+      ...plan.cardio
+    };
 
-  if(
-    config.r>0&&
-    !config.n
-  ){
-    config.n=Math.max(
-      1,
-      Math.floor(
-        (config.total||0)/
-        (config.r+config.m)
-      )
+    if(
+      config.r>0&&
+      !config.n
+    ){
+      config.n=Math.max(
+        1,
+        Math.floor(
+          (config.total||0)/
+          (config.r+config.m)
+        )
+      );
+    }
+
+    await preloadCardio(config);
+
+    const now=Date.now();
+
+    const position=
+      cardioPosition(
+        config,
+        now,
+        now
+      );
+
+    state.activeSession={
+      id:createSessionId(),
+      type:"cardio",
+      programDate:k,
+      startedAt:now,
+      config,
+      lastPhaseKey:
+        position.phase?.key||null,
+      announcedRemaining:[],
+      lastCountdown:0,
+      previousRemaining:
+        position.phase?.remaining??null,
+      lastTickAt:now,
+      restored:false
+    };
+
+    audioReadyForSession=true;
+
+    save();
+    requestWake();
+    render();
+
+    void audio.play(
+      phaseTokens(position),
+      {bell:true}
+    );
+  }catch(error){
+    console.error(
+      "Échec du démarrage audio du cardio",
+      error
+    );
+
+    audioReadyForSession=false;
+
+    button.disabled=false;
+    label.textContent="Débuter la marche/course";
+
+    if($("audioStatus")){
+      $("audioStatus").textContent=
+        "Audio non démarré. Réessaie avec le bouton Débuter.";
+    }
+
+    alert(
+      "L’audio n’a pas pu démarrer cette fois. La séance n’a pas été lancée : tu peux simplement réessayer."
     );
   }
-
-  await preloadCardio(config);
-
-  const now=Date.now();
-
-  const position=
-    cardioPosition(
-      config,
-      now,
-      now
-    );
-
-  state.activeSession={
-    id:createSessionId(),
-    type:"cardio",
-    programDate:k,
-    startedAt:now,
-    config,
-    lastPhaseKey:
-      position.phase?.key||null,
-    announcedRemaining:[],
-    lastCountdown:0,
-    previousRemaining:
-      position.phase?.remaining??null,
-    lastTickAt:now,
-    restored:false
-  };
-
-  audioReadyForSession=true;
-
-  save();
-  requestWake();
-  render();
-
-  void audio.play(
-    phaseTokens(position),
-    {bell:true}
-  );
 }
 
 function startCardioTick(){
@@ -1508,76 +1554,89 @@ async function resumeActiveAudio(){
 
   if(!session)return;
 
-  const unlock=
-    audio.createContextFromGesture();
+  const button=$("resumeAudioBtn");
 
-  $("resumeAudioBtn").disabled=true;
+  button.disabled=true;
+  button.textContent="Préparation…";
 
-  $("resumeAudioBtn").textContent=
-    "Préparation…";
+  try{
+    await audio.createContextFromGesture();
 
-  await unlock;
+    if(session.type==="cardio"){
+      const position=
+        cardioPosition(
+          session.config,
+          session.startedAt
+        );
 
-  if(session.type==="cardio"){
-    const position=
-      cardioPosition(
-        session.config,
-        session.startedAt
+      if(position.complete){
+        finishCardio(
+          false,
+          true
+        );
+        return;
+      }
+
+      await preloadCardio(
+        session.config
       );
 
-    if(position.complete){
-      finishCardio(
-        false,
-        true
+      session.lastPhaseKey=
+        position.phase.key;
+
+      session.previousRemaining=
+        position.phase.remaining;
+
+      session.announcedRemaining=[];
+      session.lastCountdown=0;
+
+      void audio.play(
+        phaseTokens(position),
+        {bell:true}
       );
-      return;
+    }else{
+      await preloadStrengthSession(
+        session
+      );
+
+      const exercise=
+        session.sequence[
+          session.index
+        ];
+
+      void audio.play(
+        session.phase==="rest"
+          ?["repos"]
+          :strengthExerciseTokens(
+            exercise,
+            session.circuits
+          ),
+        {bell:true}
+      );
     }
 
-    await preloadCardio(
-      session.config
+    audioReadyForSession=true;
+    session.restored=false;
+    session.lastTickAt=Date.now();
+
+    save();
+    requestWake();
+    render();
+  }catch(error){
+    console.error(
+      "Impossible de réactiver l’audio",
+      error
     );
 
-    session.lastPhaseKey=
-      position.phase.key;
+    audioReadyForSession=false;
 
-    session.previousRemaining=
-      position.phase.remaining;
+    button.disabled=false;
+    button.textContent="Réactiver l’audio";
 
-    session.announcedRemaining=[];
-    session.lastCountdown=0;
-
-    void audio.play(
-      phaseTokens(position),
-      {bell:true}
-    );
-  }else{
-    await preloadStrengthSession(
-      session
-    );
-
-    const exercise=
-      session.sequence[
-        session.index
-      ];
-
-    void audio.play(
-      session.phase==="rest"
-        ?["repos"]
-        :strengthExerciseTokens(
-          exercise,
-          session.circuits
-        ),
-      {bell:true}
+    alert(
+      "L’audio n’a pas pu être réactivé. Le chrono de la séance reste conservé; tu peux réessayer."
     );
   }
-
-  audioReadyForSession=true;
-  session.restored=false;
-  session.lastTickAt=Date.now();
-
-  save();
-  requestWake();
-  render();
 }
 
 async function requestWake(){
@@ -2703,20 +2762,28 @@ $("testAudio")
   .addEventListener(
     "click",
     async()=>{
-      const unlock=
-        audio
-          .createContextFromGesture();
+      try{
+        await audio.createContextFromGesture();
 
-      await unlock;
+        await audio.preload(
+          finishTokens()
+        );
 
-      await audio.preload(
-        finishTokens()
-      );
+        await audio.play(
+          finishTokens(),
+          {bell:true}
+        );
+      }catch(error){
+        console.error(
+          "Test audio impossible",
+          error
+        );
 
-      await audio.play(
-        finishTokens(),
-        {bell:true}
-      );
+        if($("audioStatus")){
+          $("audioStatus").textContent=
+            "Le test audio a échoué. Réessaie dans quelques secondes.";
+        }
+      }
     }
   );
 
